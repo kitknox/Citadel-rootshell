@@ -1,6 +1,6 @@
 import Foundation
 import Logging
-import NIO
+import NIOCore
 @preconcurrency import NIOSSH
 import NIOConcurrencyHelpers
 

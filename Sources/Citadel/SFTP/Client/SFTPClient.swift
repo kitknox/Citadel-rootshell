@@ -1,5 +1,5 @@
 import Foundation
-import NIO
+import NIOCore
 import NIOConcurrencyHelpers
 import NIOSSH
 import Logging

@@ -1,4 +1,4 @@
-import NIO
+import NIOCore
 
 final class SFTPMessageSerializer: MessageToByteEncoder {
     typealias OutboundIn = SFTPMessage

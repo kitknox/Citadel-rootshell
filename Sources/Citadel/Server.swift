@@ -1,4 +1,5 @@
-import NIO
+import NIOCore
+import NIOPosix
 import Logging
 @preconcurrency import NIOSSH
 import NIOConcurrencyHelpers

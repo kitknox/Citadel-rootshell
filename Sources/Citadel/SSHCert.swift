@@ -2,7 +2,7 @@ import CCryptoBoringSSL
 import BigInt
 import Foundation
 import Crypto
-import NIO
+import NIOCore
 import NIOSSH
 
 public struct InvalidOpenSSHKey: Error {

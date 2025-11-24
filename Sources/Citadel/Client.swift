@@ -1,4 +1,5 @@
-import NIO
+import NIOCore
+import NIOPosix
 import Crypto
 import Logging
 import NIOSSH

@@ -1,4 +1,4 @@
-import NIO
+import NIOCore
 import NIOFoundationCompat
 import BigInt
 import NIOSSH
@@ -13,8 +13,17 @@ extension Insecure {
 extension Insecure.RSA {
     public final class PublicKey: NIOSSHPublicKeyProtocol {
         public static let publicKeyPrefix = "ssh-rsa"
+        public static var authAlgorithmName: String { "rsa-sha2-256" }
         public static let keyExchangeAlgorithms = ["diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1"]
-        
+
+        // Explicitly implement instance property to override protocol extension default
+        public var authAlgorithmName: String {
+            print("🔐🔐🔐 Citadel RSA.PublicKey.authAlgorithmName (instance) called!")
+            let value = Self.authAlgorithmName
+            print("🔐🔐🔐 Citadel RSA.PublicKey - static authAlgorithmName returns: '\(value)'")
+            return value
+        }
+
         // PublicExponent e
         internal let publicExponent: UnsafeMutablePointer<BIGNUM>
         
@@ -138,18 +147,18 @@ extension Insecure.RSA {
     }
     
     public struct Signature: ContiguousBytes, NIOSSHSignatureProtocol {
-        public static let signaturePrefix = "ssh-rsa"
-        
+        public static let signaturePrefix = "rsa-sha2-256"  // Modern signature algorithm (not deprecated ssh-rsa)
+
         public let rawRepresentation: Data
-        
+
         public init<D>(rawRepresentation: D) where D : DataProtocol {
             self.rawRepresentation = Data(rawRepresentation)
         }
-        
+
         public func withUnsafeBytes<R>(_ body: (UnsafeRawBufferPointer) throws -> R) rethrows -> R {
             try rawRepresentation.withUnsafeBytes(body)
         }
-        
+
         public func write(to buffer: inout ByteBuffer) -> Int {
             // For SSH-RSA, the key format is the signature without lengths or paddings
             return buffer.writeSSHString(rawRepresentation)
@@ -166,7 +175,8 @@ extension Insecure.RSA {
     
     public final class PrivateKey: NIOSSHPrivateKeyProtocol {
         public static let keyPrefix = "ssh-rsa"
-        
+        public static var authAlgorithmName: String { "rsa-sha2-256" }
+
         // Private Exponent
         internal let privateExponent: UnsafeMutablePointer<BIGNUM>
         
@@ -217,7 +227,7 @@ extension Insecure.RSA {
             let modulus = CCryptoBoringSSL_BN_new()!
             let publicExponent = CCryptoBoringSSL_BN_new()!
             let privateExponent = CCryptoBoringSSL_BN_new()!
-            
+
             CCryptoBoringSSL_BN_copy(modulus, self._publicKey.modulus)
             CCryptoBoringSSL_BN_copy(publicExponent, self._publicKey.publicExponent)
             CCryptoBoringSSL_BN_copy(privateExponent, self.privateExponent)
@@ -229,25 +239,32 @@ extension Insecure.RSA {
             ) == 1 else {
                 throw CitadelError.signingError
             }
-            
-            let hash = Array(Insecure.SHA1.hash(data: message))
+
+            // Use SHA-256 for rsa-sha2-256 (modern standard, not deprecated SHA-1)
+            let hash = Array(SHA256.hash(data: message))
             let out = UnsafeMutablePointer<UInt8>.allocate(capacity: 4096)
             defer { out.deallocate() }
             var outLength: UInt32 = 4096
             let result = CCryptoBoringSSL_RSA_sign(
-                NID_sha1,
+                NID_sha256,
                 hash,
                 Int(hash.count),
                 out,
                 &outLength,
                 context
             )
-            
+
             guard result == 1 else {
+                print("❌ RSA_sign failed!")
                 throw CitadelError.signingError
             }
-            
-            return Signature(rawRepresentation: Data(bytes: out, count: Int(outLength)))
+
+            let signatureData = Data(bytes: out, count: Int(outLength))
+            print("✅ RSA signature created: \(signatureData.count) bytes")
+            let sigHex = signatureData.prefix(32).map { String(format: "%02x", $0) }.joined()
+            print("✅ Signature (first 32 bytes): \(sigHex)")
+
+            return Signature(rawRepresentation: signatureData)
         }
         
         public func signature<D>(for data: D) throws -> NIOSSHSignatureProtocol where D : DataProtocol {
