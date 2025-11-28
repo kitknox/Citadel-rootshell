@@ -219,7 +219,17 @@ extension Insecure.RSA {
             )
         }
         
+        /// Hash algorithm for RSA signing
+        public enum HashAlgorithm {
+            case sha256
+            case sha512
+        }
+
         public func signature<D: DataProtocol>(for message: D) throws -> Signature {
+            try signature(for: message, hashAlgorithm: .sha256)
+        }
+
+        public func signature<D: DataProtocol>(for message: D, hashAlgorithm: HashAlgorithm) throws -> Signature {
             let context = CCryptoBoringSSL_RSA_new()
             defer { CCryptoBoringSSL_RSA_free(context) }
 
@@ -240,13 +250,24 @@ extension Insecure.RSA {
                 throw CitadelError.signingError
             }
 
-            // Use SHA-256 for rsa-sha2-256 (modern standard, not deprecated SHA-1)
-            let hash = Array(SHA256.hash(data: message))
+            // Compute hash based on algorithm
+            let hash: [UInt8]
+            let nid: Int32
+
+            switch hashAlgorithm {
+            case .sha256:
+                hash = Array(SHA256.hash(data: message))
+                nid = NID_sha256
+            case .sha512:
+                hash = Array(SHA512.hash(data: message))
+                nid = NID_sha512
+            }
+
             let out = UnsafeMutablePointer<UInt8>.allocate(capacity: 4096)
             defer { out.deallocate() }
             var outLength: UInt32 = 4096
             let result = CCryptoBoringSSL_RSA_sign(
-                NID_sha256,
+                nid,
                 hash,
                 Int(hash.count),
                 out,

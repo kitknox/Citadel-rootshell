@@ -268,7 +268,8 @@ extension SSHClient {
 
     internal func _executeCommandStream(
         environment: [SSHChannelRequestEvent.EnvironmentRequest] = [],
-        mode: CommandMode
+        mode: CommandMode,
+        agentDelegate: SSHAgentDelegate? = nil
     ) async throws -> (channel: Channel, output: AsyncThrowingStream<ExecCommandOutput, Error>) {
         let (stream, streamContinuation) = AsyncThrowingStream<ExecCommandOutput, Error>.makeStream()
 
@@ -325,6 +326,10 @@ extension SSHClient {
         switch mode {
         case .pty(let request):
             try await channel.triggerUserOutboundEvent(request)
+            // Enable agent forwarding after PTY request, before shell request
+            if let agentDelegate = agentDelegate {
+                try await enableAgentForwarding(delegate: agentDelegate, on: channel)
+            }
             fallthrough
         case .tty:
             try await channel.triggerUserOutboundEvent(SSHChannelRequestEvent.ShellRequest(
@@ -336,7 +341,7 @@ extension SSHClient {
                 wantReply: true
             ))
         }
-        
+
         return (channel, stream)
     }
 
@@ -396,6 +401,42 @@ extension SSHClient {
     ///     }
     /// }
     /// ```
+    /// Creates a pseudo-terminal (PTY) session with optional agent forwarding
+    /// - Parameters:
+    ///   - request: PTY configuration parameters
+    ///   - environment: Array of environment variables to set for the PTY session
+    ///   - agentDelegate: Optional agent delegate for SSH agent forwarding
+    ///   - perform: Closure that receives TTY input/output streams and performs terminal operations
+    /// - Throws: Any errors that occur during PTY setup or operation
+    @available(macOS 15.0, *)
+    public func withPTY(
+        _ request: SSHChannelRequestEvent.PseudoTerminalRequest,
+        environment: [SSHChannelRequestEvent.EnvironmentRequest] = [],
+        agentDelegate: SSHAgentDelegate?,
+        perform: (_ inbound: TTYOutput, _ outbound: TTYStdinWriter) async throws -> Void
+    ) async throws {
+        // Pass agent delegate to _executeCommandStream so it's enabled
+        // in the correct order (after PTY request, before shell request)
+        let (channel, output) = try await _executeCommandStream(
+            environment: environment,
+            mode: .pty(request),
+            agentDelegate: agentDelegate
+        )
+
+        func close() async throws {
+            try await channel.close()
+        }
+
+        do {
+            let inbound = TTYOutput(sequence: output)
+            try await perform(inbound, TTYStdinWriter(channel: channel))
+            try await close()
+        } catch {
+            try await close()
+            throw error
+        }
+    }
+
     @available(macOS 15.0, *)
     public func withTTY(
         environment: [SSHChannelRequestEvent.EnvironmentRequest] = [],

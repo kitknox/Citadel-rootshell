@@ -7,9 +7,12 @@ import Synchronization
 
 final class SSHClientInboundChannelHandler: Sendable {
     typealias TCPIPForwardHandler = @Sendable (Channel, SSHChannelType.ForwardedTCPIP) -> EventLoopFuture<Void>
+    typealias AgentChannelHandler = @Sendable (Channel) -> EventLoopFuture<Void>
+
     let forwardedTCPIPHosts = NIOLockedValueBox(
         [SSHRemotePortForward: TCPIPForwardHandler]()
     )
+    let agentHandler = NIOLockedValueBox<AgentChannelHandler?>(nil)
 
     init() {}
 
@@ -42,6 +45,18 @@ final class SSHClientInboundChannelHandler: Sendable {
         }
     }
 
+    /// Registers a handler for SSH agent forwarding channels.
+    ///
+    /// - Parameter handler: The handler to call when an agent channel is opened.
+    nonisolated func registerAgentHandler(_ handler: @escaping AgentChannelHandler) {
+        agentHandler.withLockedValue { $0 = handler }
+    }
+
+    /// Unregisters the SSH agent forwarding handler.
+    nonisolated func unregisterAgentHandler() {
+        agentHandler.withLockedValue { $0 = nil }
+    }
+
     nonisolated func handleChannel(channel: Channel, channelType: SSHChannelType) -> EventLoopFuture<Void> {
         switch channelType {
         case .session:
@@ -59,6 +74,13 @@ final class SSHClientInboundChannelHandler: Sendable {
                 }
 
                 return host(channel, forwardedTCPIP)
+            }
+        case .authAgent:
+            return agentHandler.withLockedValue { handler in
+                guard let handler = handler else {
+                    return channel.eventLoop.makeFailedFuture(CitadelError.unsupported)
+                }
+                return handler(channel)
             }
         }
     }

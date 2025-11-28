@@ -181,6 +181,9 @@ final class CitadelServerDelegate: Sendable, GlobalRequestDelegate {
             }
         case .forwardedTCPIP:
             return channel.eventLoop.makeFailedFuture(CitadelError.unsupported)
+        case .authAgent:
+            // Agent forwarding is a client-side feature; reject on server
+            return channel.eventLoop.makeFailedFuture(CitadelError.unsupported)
         }
     }
 
