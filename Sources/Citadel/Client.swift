@@ -1,3 +1,4 @@
+import Foundation
 import NIOCore
 import NIOPosix
 import Crypto
@@ -369,5 +370,39 @@ public final class SSHClient {
     public func close() async throws {
         self.userInitiatedClose = true
         try await self.session.channel.close()
+    }
+
+    // MARK: - Keepalive
+
+    /// Sends an SSH keepalive request and measures round-trip time.
+    ///
+    /// This sends an SSH global request with `keepalive@openssh.com` and waits for the server's response.
+    /// The RTT is measured from when the request is sent to when the response is received.
+    ///
+    /// - Parameter timeout: Maximum time to wait for a response. Defaults to 10 seconds.
+    /// - Returns: Round-trip time in seconds.
+    /// - Throws: If the request times out or the connection fails.
+    public func sendKeepalive(timeout: TimeAmount = .seconds(10)) async throws -> TimeInterval {
+        let startTime = DispatchTime.now()
+
+        logger.debug("Sending keepalive@openssh.com global request")
+
+        // Send keepalive global request with wantReply=true
+        _ = try await eventLoop.flatSubmit { [eventLoop, sshHandler = self.session.sshHandler] in
+            let responsePromise = eventLoop.makePromise(of: ByteBuffer?.self)
+            sshHandler.value.sendCustomGlobalRequest(
+                name: "keepalive@openssh.com",
+                wantReply: true,
+                data: nil,
+                promise: responsePromise
+            )
+            return responsePromise.futureResult
+        }.get()
+
+        let endTime = DispatchTime.now()
+        let rttNanoseconds = endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
+        let rttSeconds = Double(rttNanoseconds) / 1_000_000_000.0
+        logger.debug("Keepalive response received, RTT: \(rttSeconds)s")
+        return rttSeconds
     }
 }
