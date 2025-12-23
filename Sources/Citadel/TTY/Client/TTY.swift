@@ -47,8 +47,10 @@ public struct ExecCommandStream {
 public enum ExecCommandOutput {
     /// Standard output data as a byte buffer
     case stdout(ByteBuffer)
-    /// Standard error data as a byte buffer 
+    /// Standard error data as a byte buffer
     case stderr(ByteBuffer)
+    /// Shell exit status code (sent when shell exits normally)
+    case exitStatus(Int)
 }
 
 /// An async sequence that provides TTY output data
@@ -224,6 +226,9 @@ extension SSHClient {
                 }
 
                 result.writeImmutableBuffer(chunk)
+            case .exitStatus:
+                // Exit status is informational for executeCommand - just continue
+                break
             }
         }
 
@@ -303,6 +308,7 @@ extension SSHClient {
             case .exit(let status):
                 self.logger.debug("Process exited with status code \(status). Will await on EOF for correct exit")
                 exitCode.withLockedValue({ $0 = status })
+                streamContinuation.yield(.exitStatus(status))
             }
         }
 
@@ -514,6 +520,9 @@ extension SSHClient {
                         handler.stdout.yield(buffer)
                     case .stderr(let buffer):
                         handler.stderr.yield(buffer)
+                    case .exitStatus:
+                        // Exit status is informational - just continue
+                        break
                     }
                 }
                 
