@@ -30,6 +30,8 @@ public struct InvalidOpenSSHKey: Error {
     static let invalidPublicKeyPrefix = InvalidOpenSSHKey(reason: "invalidPublicKeyPrefix")
     static let invalidOrUnsupportedBCryptConfig = InvalidOpenSSHKey(reason: "invalidOrUnsupportedBCryptConfig")
     static let unexpectedKDFNoneOptions = InvalidOpenSSHKey(reason: "unexpectedKDFNoneOptions")
+    static let cryptoError = InvalidOpenSSHKey(reason: "cryptoError")
+    static let sha512NotInitialized = InvalidOpenSSHKey(reason: "sha512NotInitialized")
 }
 
 public typealias InvalidKey = InvalidOpenSSHKey
@@ -39,8 +41,11 @@ extension Curve25519.Signing.PublicKey: ByteBufferConvertible {
         guard var publicKeyBuffer = buffer.readSSHBuffer() else {
             throw InvalidOpenSSHKey.missingPublicKeyBuffer
         }
-        
-        return try self.init(rawRepresentation: publicKeyBuffer.readBytes(length: publicKeyBuffer.readableBytes)!)
+
+        guard let keyBytes = publicKeyBuffer.readBytes(length: publicKeyBuffer.readableBytes) else {
+            throw InvalidOpenSSHKey.invalidLayout
+        }
+        return try self.init(rawRepresentation: keyBytes)
     }
     
     @discardableResult
@@ -101,23 +106,34 @@ extension Insecure.RSA.PrivateKey: OpenSSHPrivateKey {
         }
     }
     
-    /// Creates a new Curve25519 private key from an OpenSSH private key string.
+    /// Creates a new RSA private key from an OpenSSH private key string.
     /// - Parameters:
     ///  - key: The OpenSSH private key string.
     /// - decryptionKey: The key to decrypt the private key with, if any.
     public convenience init(sshRsa key: String, decryptionKey: Data? = nil) throws {
         let privateKey = try OpenSSH.PrivateKey<Insecure.RSA.PrivateKey>.init(string: key, decryptionKey: decryptionKey).privateKey
-        let publicKey = privateKey.publicKey as! Insecure.RSA.PublicKey
-        
-        // Copy, so that our values stored in `privateKey` aren't freed when exciting the initializers scope
-        let modulus = CCryptoBoringSSL_BN_new()!
-        let publicExponent = CCryptoBoringSSL_BN_new()!
-        let privateExponent = CCryptoBoringSSL_BN_new()!
-        
+        guard let publicKey = privateKey.publicKey as? Insecure.RSA.PublicKey else {
+            throw InvalidOpenSSHKey.invalidLayout
+        }
+
+        // Copy, so that our values stored in `privateKey` aren't freed when exiting the initializer's scope
+        guard let modulus = CCryptoBoringSSL_BN_new() else {
+            throw InvalidOpenSSHKey.cryptoError
+        }
+        guard let publicExponent = CCryptoBoringSSL_BN_new() else {
+            CCryptoBoringSSL_BN_free(modulus)
+            throw InvalidOpenSSHKey.cryptoError
+        }
+        guard let privateExponent = CCryptoBoringSSL_BN_new() else {
+            CCryptoBoringSSL_BN_free(modulus)
+            CCryptoBoringSSL_BN_free(publicExponent)
+            throw InvalidOpenSSHKey.cryptoError
+        }
+
         CCryptoBoringSSL_BN_copy(modulus, publicKey.modulus)
         CCryptoBoringSSL_BN_copy(publicExponent, publicKey.publicExponent)
         CCryptoBoringSSL_BN_copy(privateExponent, privateKey.privateExponent)
-        
+
         self.init(privateExponent: privateExponent, publicExponent: publicExponent, modulus: modulus)
     }
 }

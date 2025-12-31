@@ -40,10 +40,19 @@ extension Insecure.RSA.PrivateKey: ByteBufferConvertible {
         else {
             throw InvalidOpenSSHKey.invalidLayout
         }
-        
-        let privateExponent = CCryptoBoringSSL_BN_bin2bn(dBytes, dBytes.count, nil)!
-        let publicExponent = CCryptoBoringSSL_BN_bin2bn(eBytes, eBytes.count, nil)!
-        let modulus = CCryptoBoringSSL_BN_bin2bn(nBytes, nBytes.count, nil)!
+
+        guard let privateExponent = CCryptoBoringSSL_BN_bin2bn(dBytes, dBytes.count, nil) else {
+            throw InvalidOpenSSHKey.cryptoError
+        }
+        guard let publicExponent = CCryptoBoringSSL_BN_bin2bn(eBytes, eBytes.count, nil) else {
+            CCryptoBoringSSL_BN_free(privateExponent)
+            throw InvalidOpenSSHKey.cryptoError
+        }
+        guard let modulus = CCryptoBoringSSL_BN_bin2bn(nBytes, nBytes.count, nil) else {
+            CCryptoBoringSSL_BN_free(privateExponent)
+            CCryptoBoringSSL_BN_free(publicExponent)
+            throw InvalidOpenSSHKey.cryptoError
+        }
 
         return self.init(privateExponent: privateExponent, publicExponent: publicExponent, modulus: modulus)
     }
@@ -126,8 +135,11 @@ extension Curve25519.Signing.PrivateKey: ByteBufferConvertible {
             }
         }
         buffer.writeSSHString(&privateKeyBuffer)
-        
-        let base64 = buffer.readData(length: buffer.readableBytes)!.base64EncodedString()
+
+        guard let bufferData = buffer.readData(length: buffer.readableBytes) else {
+            return "" // Return empty string if buffer read fails
+        }
+        let base64 = bufferData.base64EncodedString()
         
         var string = "-----BEGIN OPENSSH PRIVATE KEY-----\n"
         string += base64
@@ -161,20 +173,30 @@ extension ByteBuffer {
             throw OpenSSH.KeyError.cryptoError
         }
         
+        // Skip decryption for empty buffers
+        guard self.readableBytes > 0 else {
+            return
+        }
+
         try self.withUnsafeMutableReadableBytes { buffer in
-            var byteBufferPointer = buffer.bindMemory(to: UInt8.self).baseAddress!
+            guard var byteBufferPointer = buffer.bindMemory(to: UInt8.self).baseAddress else {
+                throw InvalidOpenSSHKey.cryptoError
+            }
             try withUnsafeTemporaryAllocation(of: UInt8.self, capacity: 16) { decryptedBuffer in
+                guard let decryptedBufferBase = decryptedBuffer.baseAddress else {
+                    throw InvalidOpenSSHKey.cryptoError
+                }
                 for _ in 0..<buffer.count / 16 {
                     guard CCryptoBoringSSL_EVP_Cipher(
                         context,
-                        decryptedBuffer.baseAddress!,
+                        decryptedBufferBase,
                         byteBufferPointer,
                         16
                     ) == 1 else {
                         throw CitadelError.cryptographicError
                     }
-                    
-                    byteBufferPointer.update(from: decryptedBuffer.baseAddress!, count: 16)
+
+                    byteBufferPointer.update(from: decryptedBufferBase, count: 16)
                     // Move the pointer forward to the next block
                     byteBufferPointer += 16
                 }
@@ -258,26 +280,36 @@ enum OpenSSH {
                 guard let decryptionKey = decryptionKey else {
                     throw KeyError.missingDecryptionKey
                 }
-                
+
                 guard _SHA512.didInit else {
-                    fatalError("Internal library error")
+                    throw InvalidOpenSSHKey.sha512NotInitialized
                 }
-                
+
+                // Pre-validate salt buffer
+                guard salt.readableBytes > 0 else {
+                    throw KeyError.cryptoError
+                }
+                guard let saltBytes = salt.readBytes(length: salt.readableBytes) else {
+                    throw KeyError.cryptoError
+                }
+
                 return try decryptionKey.withUnsafeBytes { decryptionKey in
-                    let salt = salt.readBytes(length: salt.readableBytes)!
+                    guard let baseAddress = decryptionKey.baseAddress else {
+                        throw KeyError.missingDecryptionKey
+                    }
                     var key = [UInt8](repeating: 0, count: cipher.keyLength + cipher.ivLength)
                     guard citadel_bcrypt_pbkdf(
-                        decryptionKey.baseAddress!,
+                        baseAddress,
                         decryptionKey.count,
-                        salt,
-                        salt.count,
+                        saltBytes,
+                        saltBytes.count,
                         &key,
                         cipher.keyLength + cipher.ivLength,
                         iterations
                     ) == 0 else {
                         throw KeyError.cryptoError
                     }
-                    
+
                     return try perform(Array(key[..<cipher.keyLength]), Array(key[cipher.keyLength...]))
                 }
             }
