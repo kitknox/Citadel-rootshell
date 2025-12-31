@@ -268,7 +268,10 @@ extension SSHClient {
     }
 
     enum CommandMode {
-        case pty(SSHChannelRequestEvent.PseudoTerminalRequest), tty(command: String?), command(String)
+        case pty(SSHChannelRequestEvent.PseudoTerminalRequest)
+        case ptyExec(SSHChannelRequestEvent.PseudoTerminalRequest, command: String)
+        case tty(command: String?)
+        case command(String)
     }
 
     internal func _executeCommandStream(
@@ -339,6 +342,16 @@ extension SSHClient {
             fallthrough
         case .tty:
             try await channel.triggerUserOutboundEvent(SSHChannelRequestEvent.ShellRequest(
+                wantReply: true
+            ))
+        case .ptyExec(let request, let command):
+            // PTY with exec request (used for tmux auto-start)
+            try await channel.triggerUserOutboundEvent(request)
+            if let agentDelegate = agentDelegate {
+                try await enableAgentForwarding(delegate: agentDelegate, on: channel)
+            }
+            try await channel.triggerUserOutboundEvent(SSHChannelRequestEvent.ExecRequest(
+                command: command,
                 wantReply: true
             ))
         case .command(let command):
@@ -451,6 +464,47 @@ extension SSHClient {
         let (channel, output) = try await _executeCommandStream(
             environment: environment,
             mode: .tty(command: nil)
+        )
+
+        func close() async throws {
+            try await channel.close()
+        }
+
+        do {
+            let inbound = TTYOutput(sequence: output)
+            try await perform(inbound, TTYStdinWriter(channel: channel))
+            try await close()
+        } catch {
+            try await close()
+            throw error
+        }
+    }
+
+    /// Creates a pseudo-terminal (PTY) session and executes a specific command
+    ///
+    /// Unlike `withPTY` which starts an interactive shell, this method sends an exec request
+    /// with the specified command. This is useful for launching interactive applications like
+    /// tmux directly via SSH protocol rather than typing them into a shell.
+    ///
+    /// - Parameters:
+    ///   - request: PTY configuration parameters
+    ///   - command: The command to execute (e.g., "tmux new-session -A -s main")
+    ///   - environment: Array of environment variables to set for the session
+    ///   - agentDelegate: Optional agent delegate for SSH agent forwarding
+    ///   - perform: Closure that receives TTY input/output streams and performs terminal operations
+    /// - Throws: Any errors that occur during PTY setup or command execution
+    @available(macOS 15.0, *)
+    public func withPTYExec(
+        _ request: SSHChannelRequestEvent.PseudoTerminalRequest,
+        command: String,
+        environment: [SSHChannelRequestEvent.EnvironmentRequest] = [],
+        agentDelegate: SSHAgentDelegate?,
+        perform: (_ inbound: TTYOutput, _ outbound: TTYStdinWriter) async throws -> Void
+    ) async throws {
+        let (channel, output) = try await _executeCommandStream(
+            environment: environment,
+            mode: .ptyExec(request, command: command),
+            agentDelegate: agentDelegate
         )
 
         func close() async throws {
