@@ -181,8 +181,6 @@ public final class SFTPClient: Sendable {
     public func getAttributes(
         at filePath: String
     ) async throws -> SFTPFileAttributes {
-        self.logger.info("SFTP requesting file attributes at '\(filePath)'")
-        
         let response = try await sendRequest(.stat(.init(
             requestId: allocateRequestId(),
             path: filePath
