@@ -87,11 +87,15 @@ public final class SSHAuthenticationMethod: NIOSSHClientUserAuthenticationDelega
             nextChallengePromise.fail(SSHClientError.allAuthenticationOptionsFailed)
             return
         }
-        
-        let implementation = implementations.removeFirst()
+
+        // Peek at the first implementation without removing it yet
+        let implementation = implementations.first!
 
         switch implementation {
         case .user(let username, offer: let offer):
+            // For user-based auth, remove from array (single attempt per offer)
+            _ = implementations.removeFirst()
+
             switch offer {
             case .password:
                 guard availableMethods.contains(.password) else {
@@ -111,10 +115,35 @@ public final class SSHAuthenticationMethod: NIOSSHClientUserAuthenticationDelega
             case .none:
                 ()
             }
-            
+
             nextChallengePromise.succeed(NIOSSHUserAuthenticationOffer(username: username, serviceName: "", offer: offer))
-        case .custom(let implementation):
-            implementation.nextAuthenticationType(availableMethods: availableMethods, nextChallengePromise: nextChallengePromise)
+
+        case .custom(let customDelegate):
+            // For custom delegates, create a wrapper promise that intercepts nil responses
+            // to know when the delegate is exhausted (so we can try the next implementation)
+            let eventLoop = nextChallengePromise.futureResult.eventLoop
+            let wrapperPromise = eventLoop.makePromise(of: NIOSSHUserAuthenticationOffer?.self)
+
+            wrapperPromise.futureResult.whenComplete { result in
+                switch result {
+                case .success(let offer):
+                    if offer == nil {
+                        // Custom delegate is exhausted, remove it and try next implementation
+                        _ = self.implementations.removeFirst()
+                        // Recursively try the next implementation
+                        self.nextAuthenticationType(availableMethods: availableMethods, nextChallengePromise: nextChallengePromise)
+                    } else {
+                        // Custom delegate provided an offer, pass it through
+                        nextChallengePromise.succeed(offer)
+                    }
+                case .failure(let error):
+                    // Custom delegate failed, propagate the error
+                    _ = self.implementations.removeFirst()
+                    nextChallengePromise.fail(error)
+                }
+            }
+
+            customDelegate.nextAuthenticationType(availableMethods: availableMethods, nextChallengePromise: wrapperPromise)
         }
     }
 }
