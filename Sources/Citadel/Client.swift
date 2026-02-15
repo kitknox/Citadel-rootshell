@@ -94,6 +94,7 @@ public struct SSHAlgorithms: Sendable {
         var algorithms = SSHAlgorithms()
 
         algorithms.transportProtectionSchemes = .add([
+            AES256CTR.self,
             AES128CTR.self
         ])
 
