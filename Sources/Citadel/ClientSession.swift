@@ -245,7 +245,9 @@ final class SSHClientSession: Sendable {
             return Self.addHandlers(on: channel, inboundChannelHandler: inboundChannelHandler, settings: settings)
         }
         .connectTimeout(settings.connectTimeout)
-//        .channelOption(ChannelOptions.autoRead, value: true)
+        .channelOption(ChannelOptions.autoRead, value: true)
+        .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_SNDBUF), value: 2048 * 1024)
+        .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_RCVBUF), value: 2048 * 1024)
         .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
         .channelOption(ChannelOptions.socket(SocketOptionLevel(IPPROTO_TCP), TCP_NODELAY), value: 1)
         

@@ -350,26 +350,63 @@ public final class SSHServer {
 public struct SSHProtocolOption: Hashable, Sendable {
     internal enum Value: Hashable {
         case maximumPacketSize(Int)
+        case initialChannelWindowSize(Int)
+        case channelOpenWindowSize(Int)
+        case maximumAggregateWindowSize(Int)
     }
-    
+
     internal let value: Value
-    
+
     /// The maximum packet size that can be sent over the SSH connection.
     public static func maximumPacketSize(_ size: Int) -> Self {
         return .init(value: .maximumPacketSize(size))
     }
-    
+
+    /// The initial channel receive window size advertised to peers.
+    public static func initialChannelWindowSize(_ size: Int) -> Self {
+        return .init(value: .initialChannelWindowSize(size))
+    }
+
+    /// The window size advertised in SSH_MSG_CHANNEL_OPEN.
+    /// When smaller than `initialChannelWindowSize`, channels start with a small
+    /// window and ramp up via WindowAdjust after the first data arrives.
+    /// This prevents burst saturation when many channels open simultaneously.
+    /// 0 means use `initialChannelWindowSize` (default).
+    public static func channelOpenWindowSize(_ size: Int) -> Self {
+        return .init(value: .channelOpenWindowSize(size))
+    }
+
+    /// Maximum total outstanding WindowAdjust bytes across all child channels.
+    /// Prevents data from saturating the shared TCP pipe, ensuring control messages
+    /// (like ChannelOpenConfirmation) are not blocked behind bulk data.
+    /// 0 means unlimited (default).
+    public static func maximumAggregateWindowSize(_ size: Int) -> Self {
+        return .init(value: .maximumAggregateWindowSize(size))
+    }
+
     func apply(to client: inout SSHClientConfiguration) {
         switch value {
         case .maximumPacketSize(let size):
             client.maximumPacketSize = size
+        case .initialChannelWindowSize(let size):
+            client.initialChannelWindowSize = size
+        case .channelOpenWindowSize(let size):
+            client.channelOpenWindowSize = size
+        case .maximumAggregateWindowSize(let size):
+            client.maximumAggregateWindowSize = size
         }
     }
-    
+
     func apply(to server: inout SSHServerConfiguration) {
         switch value {
         case .maximumPacketSize(let size):
             server.maximumPacketSize = size
+        case .initialChannelWindowSize(let size):
+            server.initialChannelWindowSize = size
+        case .channelOpenWindowSize(let size):
+            server.channelOpenWindowSize = size
+        case .maximumAggregateWindowSize(let size):
+            server.maximumAggregateWindowSize = size
         }
     }
 }
