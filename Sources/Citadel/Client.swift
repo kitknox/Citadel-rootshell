@@ -178,11 +178,15 @@ public final class SSHClient {
         settings: SSHClientSettings
     ) async throws -> SSHClient {
         let inboundChannelHandler = SSHClientInboundChannelHandler()
-        try await SSHClientSession.addHandlers(
-            on: channel,
-            inboundChannelHandler: inboundChannelHandler,
-            settings: settings
-        ).get()
+        // Dispatch to the channel's event loop — addHandlers uses
+        // syncOperations which requires the caller to be on the event loop.
+        try await channel.eventLoop.flatSubmit {
+            SSHClientSession.addHandlers(
+                on: channel,
+                inboundChannelHandler: inboundChannelHandler,
+                settings: settings
+            )
+        }.get()
         
         let sshHandler = try await channel.pipeline.handler(type: NIOSSHHandler.self).get()
         let handshakeHandler = try await channel.pipeline.handler(type: ClientHandshakeHandler.self).get()
