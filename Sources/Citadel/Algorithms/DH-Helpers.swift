@@ -144,6 +144,16 @@ extension ByteBuffer {
 }
 
 extension HashFunction {
+    /// Hash data with SSH string framing (4-byte big-endian length prefix + data).
+    /// Used for encoding K as fixed-length SSH string in hybrid PQ exchange hash.
+    mutating func updateAsSSHString(_ data: some ContiguousBytes) {
+        data.withUnsafeBytes { ptr in
+            var length = UInt32(ptr.count).bigEndian
+            withUnsafeBytes(of: &length) { self.update(bufferPointer: $0) }
+            self.update(bufferPointer: ptr)
+        }
+    }
+
     fileprivate mutating func updateAsMPInt(sharedSecret: Data) {
         sharedSecret.withUnsafeBytes { secretBytesPtr in
             var secretBytesPtr = secretBytesPtr[...]
@@ -250,6 +260,17 @@ private struct SharedSecretLengthHelper {
             
             hasher.update(bufferPointer: bytesToHash)
         }
+    }
+}
+
+extension ByteBuffer {
+    /// Write raw bytes as an SSH string (4-byte big-endian length prefix + data).
+    /// Unlike mpint, no leading-zero stripping or sign-bit handling.
+    @discardableResult
+    mutating func writeSSHStringBytes(_ data: some Collection<UInt8>) -> Int {
+        writeInteger(UInt32(data.count))
+        writeBytes(data)
+        return 4 + data.count
     }
 }
 

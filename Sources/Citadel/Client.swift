@@ -10,14 +10,20 @@ extension SSHAlgorithms.Modification<NIOSSHTransportProtection.Type> {
         switch self {
         case .add(let algorithms):
             configuration.append(contentsOf: algorithms)
-            
+
             for algorithm: any NIOSSHTransportProtection.Type in algorithms {
                 NIOSSHAlgorithms.register(transportProtectionScheme: algorithm)
             }
         case .replace(with: let algorithms):
             configuration = algorithms
-            
+
             for algorithm in algorithms {
+                NIOSSHAlgorithms.register(transportProtectionScheme: algorithm)
+            }
+        case .prepend(let algorithms):
+            configuration.insert(contentsOf: algorithms, at: 0)
+
+            for algorithm: any NIOSSHTransportProtection.Type in algorithms {
                 NIOSSHAlgorithms.register(transportProtectionScheme: algorithm)
             }
         }
@@ -29,13 +35,19 @@ extension SSHAlgorithms.Modification<NIOSSHKeyExchangeAlgorithmProtocol.Type> {
         switch self {
         case .add(let algorithms):
             configuration.append(contentsOf: algorithms)
-            
+
             for algorithm in algorithms {
                 NIOSSHAlgorithms.register(keyExchangeAlgorithm: algorithm)
             }
         case .replace(with: let algorithms):
             configuration = algorithms
-            
+
+            for algorithm in algorithms {
+                NIOSSHAlgorithms.register(keyExchangeAlgorithm: algorithm)
+            }
+        case .prepend(let algorithms):
+            configuration.insert(contentsOf: algorithms, at: 0)
+
             for algorithm in algorithms {
                 NIOSSHAlgorithms.register(keyExchangeAlgorithm: algorithm)
             }
@@ -46,7 +58,7 @@ extension SSHAlgorithms.Modification<NIOSSHKeyExchangeAlgorithmProtocol.Type> {
 extension SSHAlgorithms.Modification<(NIOSSHPublicKeyProtocol.Type, NIOSSHSignatureProtocol.Type)>{
     func register() {
         switch self {
-        case .add(let algorithms):
+        case .add(let algorithms), .prepend(let algorithms):
             for (publicKey, signature) in algorithms {
                 NIOSSHAlgorithms.register(publicKey: publicKey, signature: signature)
             }
@@ -66,6 +78,8 @@ public struct SSHAlgorithms: Sendable {
     public enum Modification<T: Sendable>: Sendable {
         case replace(with: [T])
         case add([T])
+        /// Inserts algorithms at the front of the list (highest priority).
+        case prepend([T])
     }
     
     /// The enabled TransportProtectionSchemes.
@@ -74,15 +88,33 @@ public struct SSHAlgorithms: Sendable {
     /// The enabled KeyExchangeAlgorithms
     public var keyExchangeAlgorithms: Modification<NIOSSHKeyExchangeAlgorithmProtocol.Type>?
 
+    /// Key exchange algorithms to insert at the front (highest priority).
+    /// Applied before `keyExchangeAlgorithms`. Use this for algorithms that
+    /// should be preferred over NIOSSH's built-in defaults.
+    public var preferredKeyExchangeAlgorithms: [any NIOSSHKeyExchangeAlgorithmProtocol.Type]?
+
     public var publicKeyAlgorihtms: Modification<(NIOSSHPublicKeyProtocol.Type, NIOSSHSignatureProtocol.Type)>?
 
     func apply(to clientConfiguration: inout SSHClientConfiguration) {
+        // Prepend preferred algorithms first (highest priority)
+        if let preferred = preferredKeyExchangeAlgorithms {
+            for algorithm in preferred {
+                NIOSSHAlgorithms.register(keyExchangeAlgorithm: algorithm)
+            }
+            clientConfiguration.keyExchangeAlgorithms.insert(contentsOf: preferred, at: 0)
+        }
         transportProtectionSchemes?.apply(to: &clientConfiguration.transportProtectionSchemes)
         keyExchangeAlgorithms?.apply(to: &clientConfiguration.keyExchangeAlgorithms)
         publicKeyAlgorihtms?.register()
     }
-    
+
     func apply(to serverConfiguration: inout SSHServerConfiguration) {
+        if let preferred = preferredKeyExchangeAlgorithms {
+            for algorithm in preferred {
+                NIOSSHAlgorithms.register(keyExchangeAlgorithm: algorithm)
+            }
+            serverConfiguration.keyExchangeAlgorithms.insert(contentsOf: preferred, at: 0)
+        }
         transportProtectionSchemes?.apply(to: &serverConfiguration.transportProtectionSchemes)
         keyExchangeAlgorithms?.apply(to: &serverConfiguration.keyExchangeAlgorithms)
         publicKeyAlgorihtms?.register()
@@ -100,6 +132,12 @@ public struct SSHAlgorithms: Sendable {
             AES128CTR.self
         ])
 
+        // PQ hybrid at the front (highest priority, before NIOSSH defaults)
+        if #available(iOS 26, macOS 26, macCatalyst 26, visionOS 26, *) {
+            algorithms.preferredKeyExchangeAlgorithms = [MLKem768X25519Sha256.self]
+        }
+
+        // Classical DH appended after NIOSSH defaults (fallback for AWS etc.)
         algorithms.keyExchangeAlgorithms = .add([
             DiffieHellmanGroup14Sha1.self,
             DiffieHellmanGroup14Sha256.self
