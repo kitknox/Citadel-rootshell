@@ -95,6 +95,10 @@ public struct SSHAlgorithms: Sendable {
 
     public var publicKeyAlgorihtms: Modification<(NIOSSHPublicKeyProtocol.Type, NIOSSHSignatureProtocol.Type)>?
 
+    /// Public key algorithms to insert at the front (highest priority).
+    /// These are advertised before NIOSSH's built-in host key algorithms during negotiation.
+    public var preferredPublicKeyAlgorithms: [(NIOSSHPublicKeyProtocol.Type, NIOSSHSignatureProtocol.Type)]?
+
     func apply(to clientConfiguration: inout SSHClientConfiguration) {
         // Prepend preferred algorithms first (highest priority)
         if let preferred = preferredKeyExchangeAlgorithms {
@@ -105,6 +109,11 @@ public struct SSHAlgorithms: Sendable {
         }
         transportProtectionSchemes?.apply(to: &clientConfiguration.transportProtectionSchemes)
         keyExchangeAlgorithms?.apply(to: &clientConfiguration.keyExchangeAlgorithms)
+        if let preferred = preferredPublicKeyAlgorithms {
+            for (publicKey, signature) in preferred {
+                NIOSSHAlgorithms.registerPreferred(publicKey: publicKey, signature: signature)
+            }
+        }
         publicKeyAlgorihtms?.register()
     }
 
@@ -117,6 +126,11 @@ public struct SSHAlgorithms: Sendable {
         }
         transportProtectionSchemes?.apply(to: &serverConfiguration.transportProtectionSchemes)
         keyExchangeAlgorithms?.apply(to: &serverConfiguration.keyExchangeAlgorithms)
+        if let preferred = preferredPublicKeyAlgorithms {
+            for (publicKey, signature) in preferred {
+                NIOSSHAlgorithms.registerPreferred(publicKey: publicKey, signature: signature)
+            }
+        }
         publicKeyAlgorihtms?.register()
     }
     
@@ -132,19 +146,24 @@ public struct SSHAlgorithms: Sendable {
             AES128CTR.self
         ])
 
-        // PQ hybrid at the front (highest priority, before NIOSSH defaults)
+        // PQ hybrid key exchange + PQ host key algorithms (iOS 26+)
         if #available(iOS 26, macOS 26, macCatalyst 26, visionOS 26, *) {
             algorithms.preferredKeyExchangeAlgorithms = [MLKem768X25519Sha256.self]
+            algorithms.preferredPublicKeyAlgorithms = [
+                (MLDSA65SSH.PublicKey.self, MLDSA65SSH.Signature.self),
+                (MLDSA87SSH.PublicKey.self, MLDSA87SSH.Signature.self),
+            ]
         }
+
+        // RSA appended after NIOSSH built-in ed25519/ecdsa
+        algorithms.publicKeyAlgorihtms = .add([
+            (Insecure.RSA.PublicKey.self, Insecure.RSA.Signature.self),
+        ])
 
         // Classical DH appended after NIOSSH defaults (fallback for AWS etc.)
         algorithms.keyExchangeAlgorithms = .add([
             DiffieHellmanGroup14Sha1.self,
             DiffieHellmanGroup14Sha256.self
-        ])
-
-        algorithms.publicKeyAlgorihtms = .add([
-            (Insecure.RSA.PublicKey.self, Insecure.RSA.Signature.self),
         ])
 
         return algorithms

@@ -18,10 +18,7 @@ extension Insecure.RSA {
 
         // Explicitly implement instance property to override protocol extension default
         public var authAlgorithmName: String {
-            print("🔐🔐🔐 Citadel RSA.PublicKey.authAlgorithmName (instance) called!")
-            let value = Self.authAlgorithmName
-            print("🔐🔐🔐 Citadel RSA.PublicKey - static authAlgorithmName returns: '\(value)'")
-            return value
+            Self.authAlgorithmName
         }
 
         // PublicExponent e
@@ -276,16 +273,10 @@ extension Insecure.RSA {
             )
 
             guard result == 1 else {
-                print("❌ RSA_sign failed!")
                 throw CitadelError.signingError
             }
 
-            let signatureData = Data(bytes: out, count: Int(outLength))
-            print("✅ RSA signature created: \(signatureData.count) bytes")
-            let sigHex = signatureData.prefix(32).map { String(format: "%02x", $0) }.joined()
-            print("✅ Signature (first 32 bytes): \(sigHex)")
-
-            return Signature(rawRepresentation: signatureData)
+            return Signature(rawRepresentation: Data(bytes: out, count: Int(outLength)))
         }
         
         public func signature<D>(for data: D) throws -> NIOSSHSignatureProtocol where D : DataProtocol {
