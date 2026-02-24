@@ -3,7 +3,7 @@ import NIOCore
 import NIOSSH
 import CryptoKit
 
-/// Post-quantum host key signature algorithms: ssh-mldsa-65, ssh-mldsa-87
+/// Post-quantum host key signature algorithms: ssh-mldsa65, ssh-mldsa87
 ///
 /// Implements ML-DSA (FIPS 204) digital signatures for SSH host key verification,
 /// matching the OQS OpenSSH reference (`draft-rpe-ssh-mldsa-02`).
@@ -22,7 +22,7 @@ import CryptoKit
 public enum MLDSA65SSH {
 
     public struct PublicKey: NIOSSHPublicKeyProtocol {
-        public static let publicKeyPrefix = "ssh-mldsa-65"
+        public static let publicKeyPrefix = "ssh-mldsa65"
 
         private let backing: CryptoKit.MLDSA65.PublicKey
 
@@ -57,7 +57,7 @@ public enum MLDSA65SSH {
     }
 
     public struct Signature: NIOSSHSignatureProtocol {
-        public static let signaturePrefix = "ssh-mldsa-65"
+        public static let signaturePrefix = "ssh-mldsa65"
 
         public let rawRepresentation: Data
 
@@ -81,7 +81,7 @@ public enum MLDSA65SSH {
     }
 
     public struct PrivateKey: NIOSSHPrivateKeyProtocol {
-        public static let keyPrefix = "ssh-mldsa-65"
+        public static let keyPrefix = "ssh-mldsa65"
 
         private let backing: CryptoKit.MLDSA65.PrivateKey
 
@@ -106,7 +106,7 @@ public enum MLDSA65SSH {
 public enum MLDSA87SSH {
 
     public struct PublicKey: NIOSSHPublicKeyProtocol {
-        public static let publicKeyPrefix = "ssh-mldsa-87"
+        public static let publicKeyPrefix = "ssh-mldsa87"
 
         private let backing: CryptoKit.MLDSA87.PublicKey
 
@@ -141,7 +141,7 @@ public enum MLDSA87SSH {
     }
 
     public struct Signature: NIOSSHSignatureProtocol {
-        public static let signaturePrefix = "ssh-mldsa-87"
+        public static let signaturePrefix = "ssh-mldsa87"
 
         public let rawRepresentation: Data
 
@@ -165,7 +165,7 @@ public enum MLDSA87SSH {
     }
 
     public struct PrivateKey: NIOSSHPrivateKeyProtocol {
-        public static let keyPrefix = "ssh-mldsa-87"
+        public static let keyPrefix = "ssh-mldsa87"
 
         private let backing: CryptoKit.MLDSA87.PrivateKey
 
