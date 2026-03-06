@@ -436,6 +436,20 @@ public final class SSHClient {
         try await self.session.channel.close()
     }
 
+    /// Retrieves the negotiated SSH algorithms for this connection.
+    ///
+    /// This queries the underlying NIOSSHHandler on the event loop to get the
+    /// key exchange, host key, cipher, and MAC algorithms that were negotiated
+    /// during the SSH handshake.
+    ///
+    /// - Returns: A tuple of negotiated algorithm names, or nil if key exchange hasn't completed.
+    public func getNegotiatedAlgorithms() async throws -> (keyExchange: String, hostKey: String, cipher: String, mac: String?)? {
+        try await eventLoop.flatSubmit { [sshHandler = self.session.sshHandler] in
+            let result = sshHandler.value.negotiatedAlgorithms
+            return self.eventLoop.makeSucceededFuture(result)
+        }.get()
+    }
+
     // MARK: - Keepalive
 
     /// Sends an SSH keepalive request and measures round-trip time.
