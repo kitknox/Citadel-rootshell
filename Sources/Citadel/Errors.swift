@@ -1,3 +1,5 @@
+import Foundation
+
 public enum SSHClientError: Error {
     case unsupportedPasswordAuthentication, unsupportedPrivateKeyAuthentication, unsupportedHostBasedAuthentication
     case channelCreationFailed
@@ -26,7 +28,7 @@ public enum SFTPError: Error {
     case unsupportedVersion(SFTPProtocolVersion)
 }
 
-public enum CitadelError: Error {
+public enum CitadelError: Error, LocalizedError {
     case invalidKeySize
     case invalidEncryptedPacketLength
     case invalidDecryptedPlaintextLength
@@ -40,6 +42,16 @@ public enum CitadelError: Error {
     case commandOutputTooLarge
     case channelCreationFailed
     case channelFailure
+    case loginTimeout
+
+    public var errorDescription: String? {
+        switch self {
+        case .loginTimeout:
+            return "SSH login timed out (handshake and authentication took too long)"
+        default:
+            return nil
+        }
+    }
 }
 
 public struct AuthenticationFailed: Error, Equatable {}

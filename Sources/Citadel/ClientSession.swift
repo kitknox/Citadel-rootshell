@@ -86,10 +86,13 @@ final class SSHClientInboundChannelHandler: Sendable {
     }
 }
 
-final class ClientHandshakeHandler: ChannelInboundHandler, Sendable {
+final class ClientHandshakeHandler: ChannelInboundHandler, @unchecked Sendable {
     typealias InboundIn = Any
 
     private let promise: EventLoopPromise<Void>
+    private let loginTimeout: TimeAmount
+    private var scheduledTimeout: Scheduled<Void>?
+    private var completed = false
     let logger = Logger(label: "nl.orlandos.citadel.handshake")
 
     /// A future that will be fulfilled when the handshake is complete.
@@ -98,25 +101,37 @@ final class ClientHandshakeHandler: ChannelInboundHandler, Sendable {
     }
 
     init(eventLoop: EventLoop, loginTimeout: TimeAmount) {
-        let promise = eventLoop.makePromise(of: Void.self)
-        self.promise = promise
+        self.promise = eventLoop.makePromise(of: Void.self)
+        self.loginTimeout = loginTimeout
+    }
 
-        eventLoop.scheduleTask(deadline: .now() + loginTimeout) {
-            promise.fail(ChannelError.connectTimeout(loginTimeout))
+    func handlerAdded(context: ChannelHandlerContext) {
+        self.scheduledTimeout = context.eventLoop.scheduleTask(deadline: .now() + loginTimeout) { [weak self] in
+            guard let self, !self.completed else { return }
+            self.completed = true
+            self.promise.fail(CitadelError.loginTimeout)
+            context.close(promise: nil)
         }
     }
 
     func userInboundEventTriggered(context: ChannelHandlerContext, event: Any) {
         if event is UserAuthSuccessEvent {
+            guard !completed else { return }
+            completed = true
+            scheduledTimeout?.cancel()
             self.promise.succeed(())
         }
     }
 
     func errorCaught(context: ChannelHandlerContext, error: any Error) {
+        guard !completed else { return }
+        completed = true
+        scheduledTimeout?.cancel()
         self.promise.fail(error)
     }
-    
+
     deinit {
+        scheduledTimeout?.cancel()
         struct Disconnected: Error {}
         self.promise.fail(Disconnected())
     }
@@ -132,6 +147,7 @@ public struct SSHClientSettings: Sendable {
     public var group: EventLoopGroup = MultiThreadedEventLoopGroup.singleton
     internal var channelHandlers: [ChannelHandler & Sendable] = []
     public var connectTimeout: TimeAmount = .seconds(30)
+    public var loginTimeout: TimeAmount = .seconds(60)
 
     public init(
         host: String,
@@ -193,7 +209,7 @@ final class SSHClientSession: Sendable {
     ) -> EventLoopFuture<Void> {
         let handshakeHandler = ClientHandshakeHandler(
             eventLoop: channel.eventLoop,
-            loginTimeout: .seconds(10)
+            loginTimeout: settings.loginTimeout
         )
         var clientConfiguration = SSHClientConfiguration(
             userAuthDelegate: settings.authenticationMethod(),

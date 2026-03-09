@@ -351,18 +351,23 @@ public final class SSHClient {
         protocolOptions: Set<SSHProtocolOption> = [],
         group: MultiThreadedEventLoopGroup = .singleton,
         channelHandlers: [ChannelHandler] = [],
-        connectTimeout:TimeAmount = .seconds(30)
+        connectTimeout: TimeAmount = .seconds(30),
+        loginTimeout: TimeAmount = .seconds(60)
     ) async throws -> SSHClient {
-        let session = try await SSHClientSession.connect(
+        var settings = SSHClientSettings(
             host: host,
             port: port,
-            authenticationMethod: authenticationMethod,
-            hostKeyValidator: hostKeyValidator,
-            algorithms: algorithms,
-            protocolOptions: protocolOptions,
-            group: group,
-            channelHandlers: channelHandlers,
-            connectTimeout: connectTimeout
+            authenticationMethod: { authenticationMethod },
+            hostKeyValidator: hostKeyValidator
+        )
+        settings.algorithms = algorithms
+        settings.protocolOptions = protocolOptions
+        settings.group = group
+        settings.channelHandlers = channelHandlers
+        settings.connectTimeout = connectTimeout
+        settings.loginTimeout = loginTimeout
+        let session = try await SSHClientSession.connect(
+            settings: settings
         )
         
         let client = SSHClient(
@@ -373,6 +378,8 @@ public final class SSHClient {
             protocolOptions: protocolOptions
         )
         
+        client.connectionSettings.loginTimeout = loginTimeout
+
         switch reconnect.mode {
         case .always:
             client.connectionSettings.reconnect = .always(to: host, port: port)
@@ -381,7 +388,7 @@ public final class SSHClient {
         case .never:
             client.connectionSettings.reconnect = .never
         }
-        
+
         return client
     }
     
@@ -418,16 +425,22 @@ public final class SSHClient {
         if userInitiatedClose {
             return
         }
-        
-        self.session = try await SSHClientSession.connect(
+
+        var settings = SSHClientSettings(
             host: host,
             port: port,
-            authenticationMethod: self.authenticationMethod(),
-            hostKeyValidator: self.hostKeyValidator,
-            protocolOptions: protocolOptions,
-            group: session.channel.eventLoop
+            authenticationMethod: self.authenticationMethod,
+            hostKeyValidator: self.hostKeyValidator
         )
-        
+        settings.algorithms = self.algorithms
+        settings.protocolOptions = self.protocolOptions
+        settings.group = session.channel.eventLoop
+        settings.loginTimeout = connectionSettings.loginTimeout
+
+        self.session = try await SSHClientSession.connect(
+            settings: settings
+        )
+
         onNewSession(session)
     }
     

@@ -1,7 +1,10 @@
+import NIOCore
+
 internal struct SSHConnectionPoolSettings {
     init() {}
-    
+
     internal var reconnect = _SSHReconnectMode.never
+    internal var loginTimeout: TimeAmount = .seconds(60)
 }
 
 internal struct _SSHReconnectMode {
