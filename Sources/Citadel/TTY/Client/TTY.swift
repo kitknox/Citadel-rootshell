@@ -267,6 +267,15 @@ extension SSHClient {
         ).output
     }
 
+    /// Execute a command with bidirectional I/O access.
+    /// Returns the NIO channel (for writing to stdin) and a stream for reading stdout/stderr.
+    public func executeCommandBidirectional(
+        _ command: String,
+        environment: [SSHChannelRequestEvent.EnvironmentRequest] = []
+    ) async throws -> (channel: Channel, output: AsyncThrowingStream<ExecCommandOutput, Error>) {
+        try await _executeCommandStream(environment: environment, mode: .command(command))
+    }
+
     enum CommandMode {
         case pty(SSHChannelRequestEvent.PseudoTerminalRequest)
         case ptyExec(SSHChannelRequestEvent.PseudoTerminalRequest, command: String)
