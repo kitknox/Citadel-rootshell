@@ -26,9 +26,16 @@ let package = Package(
     targets: [
         .target(name: "CCitadelBcrypt"),
         .target(
+            name: "CSntrup761",
+            cSettings: [
+                .unsafeFlags(["-w"]),  // Suppress warnings in reference crypto code
+            ]
+        ),
+        .target(
             name: "Citadel",
             dependencies: [
                 .target(name: "CCitadelBcrypt"),
+                .target(name: "CSntrup761"),
                 .product(name: "NIOSSH", package: "swift-nio-ssh"),
                 .product(name: "Crypto", package: "swift-crypto"),
                 .product(name: "_CryptoExtras", package: "swift-crypto"),

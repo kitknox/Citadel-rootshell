@@ -146,12 +146,21 @@ public struct SSHAlgorithms: Sendable {
             AES128CTR.self
         ])
 
-        // PQ hybrid key exchange + PQ host key algorithms (iOS 26+)
+        // PQ hybrid key exchange + PQ host key algorithms
+        // sntrup761 works on all iOS versions (pure C); MLKem requires iOS 26+
         if #available(iOS 26, macOS 26, macCatalyst 26, visionOS 26, *) {
-            algorithms.preferredKeyExchangeAlgorithms = [MLKem768X25519Sha256.self]
+            algorithms.preferredKeyExchangeAlgorithms = [
+                MLKem768X25519Sha256.self,        // IETF standard track, highest priority
+                Sntrup761X25519Sha512.self,        // OpenSSH default since 8.9, wide compat
+            ]
             algorithms.preferredPublicKeyAlgorithms = [
                 (MLDSA65SSH.PublicKey.self, MLDSA65SSH.Signature.self),
                 (MLDSA87SSH.PublicKey.self, MLDSA87SSH.Signature.self),
+            ]
+        } else {
+            // Pre-iOS 26: sntrup761 is the only PQ option available
+            algorithms.preferredKeyExchangeAlgorithms = [
+                Sntrup761X25519Sha512.self,
             ]
         }
 
@@ -168,6 +177,8 @@ public struct SSHAlgorithms: Sendable {
 
         return algorithms
     }()
+
+
 }
 
 /// Represents an SSH connection.

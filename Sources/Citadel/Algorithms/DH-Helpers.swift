@@ -154,7 +154,7 @@ extension HashFunction {
         }
     }
 
-    fileprivate mutating func updateAsMPInt(sharedSecret: Data) {
+    mutating func updateAsMPInt(sharedSecret: Data) {
         sharedSecret.withUnsafeBytes { secretBytesPtr in
             var secretBytesPtr = secretBytesPtr[...]
             
@@ -225,15 +225,13 @@ extension HashFunction {
 /// bit of our shared secret is set (50% of the time), that length also needs to be followed by an extra zero bit. To
 /// avoid copying our shared secret into public memory, we fiddle about with those extra bytes in this structure, and
 /// pass an interior pointer to it into the hasher in order to give good hashing performance.
-private struct SharedSecretLengthHelper {
-    // We need a 4 byte length in network byte order, and an optional fifth bit. As Curve25519 shared secrets are always
-    // 32 bytes long (before the mpint transformation), we only ever actually need to modify one of these bytes:
-    // the 4th.
+struct SharedSecretLengthHelper {
+    // We need a 4 byte length in network byte order, and an optional fifth bit.
     private var backingBytes = (UInt8(0), UInt8(0), UInt8(0), UInt8(0), UInt8(0))
-    
+
     /// Whether we should hash an extra zero byte.
     var useExtraZeroByte: Bool = false
-    
+
     /// The length to encode.
     var length: UInt8 {
         get {
@@ -243,10 +241,10 @@ private struct SharedSecretLengthHelper {
             self.backingBytes.3 = newValue
         }
     }
-    
+
     // Remove the elementwise initializer.
     init() {}
-    
+
     func update<Hasher: HashFunction>(hasher: inout Hasher) {
         withUnsafeBytes(of: self.backingBytes) { bytesPtr in
             precondition(bytesPtr.count == 5)
@@ -271,6 +269,54 @@ extension ByteBuffer {
         writeInteger(UInt32(data.count))
         writeBytes(data)
         return 4 + data.count
+    }
+
+    /// Write raw Data as an SSH mpint (4-byte length + sign-bit-aware body).
+    /// Strips leading zero bytes and prepends a zero if the top bit is set.
+    @discardableResult
+    mutating func writeMPIntData(_ data: Data) -> Int {
+        data.withUnsafeBytes { rawPtr in
+            var ptr = rawPtr[...]
+
+            guard let firstNonZero = ptr.firstIndex(where: { $0 != 0 }) else {
+                // All-zero: mpint zero is encoded as 4-byte length 0
+                writeInteger(UInt32(0))
+                return 4
+            }
+
+            let leadingZeros = firstNonZero - ptr.startIndex
+            let topBitSet = ptr[firstNonZero] & 0x80 == 0x80
+
+            switch (leadingZeros, topBitSet) {
+            case (0, false):
+                // Easy case: no leading zeros, top bit clear
+                let len = UInt32(ptr.count)
+                writeInteger(len)
+                writeBytes(ptr)
+                return 4 + Int(len)
+            case (0, true):
+                // Need extra zero byte for positive sign
+                let len = UInt32(ptr.count + 1)
+                writeInteger(len)
+                writeInteger(UInt8(0))
+                writeBytes(ptr)
+                return 4 + Int(len)
+            case (_, false):
+                // Strip all leading zeros
+                ptr = ptr.dropFirst(leadingZeros)
+                let len = UInt32(ptr.count)
+                writeInteger(len)
+                writeBytes(ptr)
+                return 4 + Int(len)
+            case (_, true):
+                // Strip all but one leading zero (which serves as sign byte)
+                ptr = ptr.dropFirst(leadingZeros - 1)
+                let len = UInt32(ptr.count)
+                writeInteger(len)
+                writeBytes(ptr)
+                return 4 + Int(len)
+            }
+        }
     }
 }
 
