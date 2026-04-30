@@ -120,7 +120,7 @@ extension ByteBuffer {
     
     mutating func writeSSHString(_ string: String) {
         let oldWriterIndex = writerIndex
-        moveWriterIndex(forwardBy: 4)
+        writeInteger(UInt32(0))
         writeString(string)
         setInteger(UInt32(writerIndex - oldWriterIndex - 4), at: oldWriterIndex)
     }
