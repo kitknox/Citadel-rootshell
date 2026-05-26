@@ -59,6 +59,58 @@ extension Insecure.RSA {
 //            return EncryptedMessage(rawRepresentation: result.serialize())
             throw CitadelError.unsupported
         }
+
+        /// Encrypt with PKCS#1 v1.5 EME padding via BoringSSL. Counterpart
+        /// to ``PrivateKey/decryptPKCS1v15(_:)`` — useful for round-trip
+        /// self-tests (encrypt a known plaintext with the public side,
+        /// decrypt with the private side, verify) and for any caller that
+        /// needs to mint an OpenPGP-style RSA ciphertext.
+        ///
+        /// BoringSSL fills the random padding internally (`RSA_PKCS1_PADDING`),
+        /// so each call produces a different ciphertext even for the same
+        /// plaintext.
+        ///
+        /// - Parameter message: Plaintext bytes. Must be at most
+        ///   `modulus_byte_length - 11` bytes (PKCS#1 v1.5 reserves 11
+        ///   bytes for the `00 02 PS 00` framing).
+        public func encryptPKCS1v15<M: DataProtocol>(_ message: M) throws -> Data {
+            let context = CCryptoBoringSSL_RSA_new()
+            defer { CCryptoBoringSSL_RSA_free(context) }
+
+            let modulus = CCryptoBoringSSL_BN_new()!
+            let publicExponent = CCryptoBoringSSL_BN_new()!
+
+            CCryptoBoringSSL_BN_copy(modulus, self.modulus)
+            CCryptoBoringSSL_BN_copy(publicExponent, self.publicExponent)
+            guard CCryptoBoringSSL_RSA_set0_key(
+                context,
+                modulus,
+                publicExponent,
+                nil
+            ) == 1 else {
+                throw RSAError(message: "Failed to assemble RSA context for encrypt")
+            }
+
+            let modSize = Int(CCryptoBoringSSL_RSA_size(context))
+            let inBytes = Array(message)
+            guard inBytes.count + 11 <= modSize else {
+                throw RSAError(message: "Plaintext too large for PKCS#1 v1.5 padding")
+            }
+            let out = UnsafeMutablePointer<UInt8>.allocate(capacity: modSize)
+            defer { out.deallocate() }
+
+            let written = CCryptoBoringSSL_RSA_public_encrypt(
+                inBytes.count,
+                inBytes,
+                out,
+                context,
+                RSA_PKCS1_PADDING
+            )
+            guard written >= 0 else {
+                throw RSAError(message: "RSA encrypt failed")
+            }
+            return Data(bytes: out, count: Int(written))
+        }
         
         public func isValidSignature<D: DataProtocol>(_ signature: Signature, for digest: D) -> Bool {
             let context = CCryptoBoringSSL_RSA_new()
@@ -459,6 +511,68 @@ extension Insecure.RSA {
 //                return signature.power(privateExponent, modulus: modulus).serialize()
 //            }
             throw CitadelError.unsupported
+        }
+
+        /// Decrypt a PKCS#1 v1.5 EME-encrypted block (modulus-byte
+        /// length) and return the unpadded message bytes. This is the
+        /// operation OpenPGP needs when consuming an RSA-encrypted
+        /// session key — `gcry_pk_decrypt` does the same thing
+        /// internally for the agent's PKDECRYPT verb.
+        ///
+        /// CRT parameters (dp/dq/qInv) aren't required: BoringSSL
+        /// falls back to the slower-but-correct `m^d mod n` path when
+        /// they're absent, which matches the OpenPGP secret-key
+        /// material we ship in (modulus + private exponent).
+        ///
+        /// - Parameter ciphertext: The RSA ciphertext, exactly
+        ///   `modulus_byte_length` bytes (big-endian, left-padded with
+        ///   zeros if needed).
+        /// - Throws: ``CitadelError/cryptographicError`` if the
+        ///   ciphertext can't be unpadded or BoringSSL refuses the
+        ///   operation (modulus mismatch, invalid PKCS#1 framing, …).
+        public func decryptPKCS1v15<C: DataProtocol>(_ ciphertext: C) throws -> Data {
+            let context = CCryptoBoringSSL_RSA_new()
+            defer { CCryptoBoringSSL_RSA_free(context) }
+
+            // Same defensive copy pattern as the precomputed-digest
+            // signing path: RSA_free will drop these, but our stored
+            // BIGNUMs must survive after this call returns.
+            let modulus = CCryptoBoringSSL_BN_new()!
+            let publicExponent = CCryptoBoringSSL_BN_new()!
+            let privateExponent = CCryptoBoringSSL_BN_new()!
+
+            CCryptoBoringSSL_BN_copy(modulus, self._publicKey.modulus)
+            CCryptoBoringSSL_BN_copy(publicExponent, self._publicKey.publicExponent)
+            CCryptoBoringSSL_BN_copy(privateExponent, self.privateExponent)
+            guard CCryptoBoringSSL_RSA_set0_key(
+                context,
+                modulus,
+                publicExponent,
+                privateExponent
+            ) == 1 else {
+                throw RSAError(message: "Failed to assemble RSA context for decrypt")
+            }
+
+            let modSize = Int(CCryptoBoringSSL_RSA_size(context))
+            let inBytes = Array(ciphertext)
+            let out = UnsafeMutablePointer<UInt8>.allocate(capacity: modSize)
+            defer { out.deallocate() }
+
+            // `RSA_private_decrypt` with `RSA_PKCS1_PADDING` performs
+            // `m = c^d mod n`, then strips the PKCS#1 v1.5 EME
+            // padding and returns the message body. Returns -1 on
+            // failure (and length on success).
+            let written = CCryptoBoringSSL_RSA_private_decrypt(
+                inBytes.count,
+                inBytes,
+                out,
+                context,
+                RSA_PKCS1_PADDING
+            )
+            guard written >= 0 else {
+                throw RSAError(message: "RSA decrypt failed")
+            }
+            return Data(bytes: out, count: Int(written))
         }
         
         internal func generatedSharedSecret(with publicKey: PublicKey, modulus: BigUInt) -> Data {
