@@ -184,6 +184,11 @@ final class CitadelServerDelegate: Sendable, GlobalRequestDelegate {
         case .authAgent:
             // Agent forwarding is a client-side feature; reject on server
             return channel.eventLoop.makeFailedFuture(CitadelError.unsupported)
+        case .forwardedStreamLocal:
+            // Streamlocal forwarding is a client-side feature (the
+            // client receives forwarded-streamlocal channels). Reject
+            // on server until/unless someone needs the inverse.
+            return channel.eventLoop.makeFailedFuture(CitadelError.unsupported)
         }
     }
 

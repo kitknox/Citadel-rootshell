@@ -109,6 +109,29 @@ extension Insecure.RSA {
             writtenBytes += buffer.writeMPBignum(modulus)
             return writtenBytes
         }
+
+        /// Raw big-endian byte representation of the modulus `n`. Used by
+        /// callers that need to feed the value to non-NIO crypto code
+        /// (e.g. GPG keygrip computation, which canonicalises just the
+        /// modulus for RSA).
+        public var modulusBytes: Data {
+            bnToData(modulus)
+        }
+
+        /// Raw big-endian byte representation of the public exponent `e`.
+        public var publicExponentBytes: Data {
+            bnToData(publicExponent)
+        }
+
+        private func bnToData(_ bn: UnsafeMutablePointer<BIGNUM>) -> Data {
+            let byteCount = Int(CCryptoBoringSSL_BN_num_bytes(bn))
+            guard byteCount > 0 else { return Data() }
+            var bytes = [UInt8](repeating: 0, count: byteCount)
+            _ = bytes.withUnsafeMutableBufferPointer { buffer in
+                CCryptoBoringSSL_BN_bn2bin(bn, buffer.baseAddress)
+            }
+            return Data(bytes)
+        }
         
         static func read(consuming buffer: inout ByteBuffer) throws -> Insecure.RSA.PublicKey {
             try read(from: &buffer)
@@ -188,7 +211,42 @@ extension Insecure.RSA {
             self.privateExponent = privateExponent
             self._publicKey = PublicKey(publicExponent: publicExponent, modulus: modulus)
         }
-        
+
+        /// Construct an RSA private key from raw, big-endian Data
+        /// representations of the modulus, public exponent, and
+        /// private exponent. This is the entry point app code uses when
+        /// it has parsed an external key format (e.g. OpenPGP secret
+        /// key packet for GPG agent forwarding) and doesn't have
+        /// access to BoringSSL's BIGNUM type directly.
+        ///
+        /// CRT parameters (dp, dq, qInv) are deliberately not exposed
+        /// here — BoringSSL falls back to plain `m^d mod n` when they
+        /// aren't set, which is slower but produces identical
+        /// signatures and matches what OpenPGP secret keys carry.
+        ///
+        /// - Parameters:
+        ///   - modulus: `n` as big-endian bytes, leading zeros allowed
+        ///     but typically stripped.
+        ///   - publicExponent: `e` as big-endian bytes.
+        ///   - privateExponent: `d` as big-endian bytes.
+        public convenience init<M: DataProtocol, E: DataProtocol, D: DataProtocol>(
+            modulus: M,
+            publicExponent: E,
+            privateExponent: D
+        ) {
+            let modulusBytes = Array(modulus)
+            let publicExponentBytes = Array(publicExponent)
+            let privateExponentBytes = Array(privateExponent)
+            let modulusBN = CCryptoBoringSSL_BN_bin2bn(modulusBytes, modulusBytes.count, nil)!
+            let publicExponentBN = CCryptoBoringSSL_BN_bin2bn(publicExponentBytes, publicExponentBytes.count, nil)!
+            let privateExponentBN = CCryptoBoringSSL_BN_bin2bn(privateExponentBytes, privateExponentBytes.count, nil)!
+            self.init(
+                privateExponent: privateExponentBN,
+                publicExponent: publicExponentBN,
+                modulus: modulusBN
+            )
+        }
+
         deinit {
             CCryptoBoringSSL_BN_free(privateExponent)
         }
@@ -282,7 +340,113 @@ extension Insecure.RSA {
         public func signature<D>(for data: D) throws -> NIOSSHSignatureProtocol where D : DataProtocol {
             return try self.signature(for: data) as Signature
         }
-        
+
+        /// Hash algorithm tag for a precomputed-digest RSA signature.
+        /// Broader than ``HashAlgorithm`` so callers that have already
+        /// computed an arbitrary digest (e.g. GPG agent forwarding,
+        /// where the remote chooses the hash) can request the matching
+        /// PKCS#1 v1.5 wrapping.
+        public enum PrecomputedHashAlgorithm {
+            case sha1
+            case sha224
+            case sha256
+            case sha384
+            case sha512
+
+            var nid: Int32 {
+                switch self {
+                case .sha1: return NID_sha1
+                case .sha224: return NID_sha224
+                case .sha256: return NID_sha256
+                case .sha384: return NID_sha384
+                case .sha512: return NID_sha512
+                }
+            }
+
+            var expectedDigestByteCount: Int {
+                switch self {
+                case .sha1: return 20
+                case .sha224: return 28
+                case .sha256: return 32
+                case .sha384: return 48
+                case .sha512: return 64
+                }
+            }
+        }
+
+        /// Sign a digest that has already been computed by the caller.
+        ///
+        /// Unlike ``signature(for:hashAlgorithm:)``, which hashes the
+        /// supplied data internally, this entry point treats `digest`
+        /// as the finished hash and feeds it straight into PKCS#1 v1.5
+        /// padding + RSA exponentiation. This is what GPG agent
+        /// forwarding needs — the remote's `SETHASH` command delivers a
+        /// precomputed digest, and re-hashing would produce a signature
+        /// over the wrong bytes.
+        ///
+        /// - Parameters:
+        ///   - digest: The precomputed hash bytes. Length MUST match
+        ///     the algorithm (e.g. exactly 32 bytes for SHA-256).
+        ///   - hashAlgorithm: Which hash family produced `digest`.
+        ///     Determines the DigestInfo OID prefix wrapped around the
+        ///     digest by PKCS#1.
+        /// - Throws: ``CitadelError/signingError`` if the digest is the
+        ///   wrong length, or if BoringSSL refuses the signing
+        ///   operation (e.g. modulus too small for the chosen hash).
+        public func signature(
+            forPrecomputedDigest digest: Data,
+            hashAlgorithm: PrecomputedHashAlgorithm
+        ) throws -> Signature {
+            guard digest.count == hashAlgorithm.expectedDigestByteCount else {
+                throw CitadelError.signingError
+            }
+
+            let context = CCryptoBoringSSL_RSA_new()
+            defer { CCryptoBoringSSL_RSA_free(context) }
+
+            // Same defensive-copy pattern as signature(for:hashAlgorithm:):
+            // RSA_free will drop these BIGNUMs, but the receiver's
+            // stored modulus/publicExponent/privateExponent are still
+            // needed after this call returns. We never set CRT params
+            // (dp, dq, qInv) — BoringSSL falls back to plain
+            // m^d mod n in their absence, which is slower but correct
+            // and matches what's available from an OpenPGP secret key
+            // (which doesn't carry CRT params at the wire level).
+            let modulus = CCryptoBoringSSL_BN_new()!
+            let publicExponent = CCryptoBoringSSL_BN_new()!
+            let privateExponent = CCryptoBoringSSL_BN_new()!
+
+            CCryptoBoringSSL_BN_copy(modulus, self._publicKey.modulus)
+            CCryptoBoringSSL_BN_copy(publicExponent, self._publicKey.publicExponent)
+            CCryptoBoringSSL_BN_copy(privateExponent, self.privateExponent)
+            guard CCryptoBoringSSL_RSA_set0_key(
+                context,
+                modulus,
+                publicExponent,
+                privateExponent
+            ) == 1 else {
+                throw CitadelError.signingError
+            }
+
+            let digestBytes = Array(digest)
+            let out = UnsafeMutablePointer<UInt8>.allocate(capacity: 4096)
+            defer { out.deallocate() }
+            var outLength: UInt32 = 4096
+            let result = CCryptoBoringSSL_RSA_sign(
+                hashAlgorithm.nid,
+                digestBytes,
+                digestBytes.count,
+                out,
+                &outLength,
+                context
+            )
+            guard result == 1 else {
+                throw CitadelError.signingError
+            }
+
+            return Signature(rawRepresentation: Data(bytes: out, count: Int(outLength)))
+        }
+
         public func decrypt(_ message: EncryptedMessage) throws -> Data {
 //            let signature = BigUInt(message.rawRepresentation)
 //

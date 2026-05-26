@@ -14,6 +14,17 @@ final class SSHClientInboundChannelHandler: Sendable {
     )
     let agentHandler = NIOLockedValueBox<AgentChannelHandler?>(nil)
 
+    typealias StreamLocalForwardHandler = @Sendable (Channel) -> EventLoopFuture<Void>
+
+    /// Map from remote socket path (the path bound via
+    /// `streamlocal-forward@openssh.com`) to the per-forward callback
+    /// that should receive each accepted channel. Keyed by socket path
+    /// because that's the only field carried in the
+    /// `forwarded-streamlocal@openssh.com` channel-open payload.
+    let forwardedStreamLocalHandlers = NIOLockedValueBox(
+        [String: StreamLocalForwardHandler]()
+    )
+
     init() {}
 
     enum HandleRegistrationResult: Error {
@@ -57,6 +68,27 @@ final class SSHClientInboundChannelHandler: Sendable {
         agentHandler.withLockedValue { $0 = nil }
     }
 
+    /// Registers a per-path handler for incoming streamlocal-forward
+    /// channels. Called once per `forwardRemoteUnixSocket(...)` so each
+    /// forwarded socket path gets its own handler — multiple forwards
+    /// can coexist on the same connection.
+    nonisolated func registerStreamLocalForwardHandler(
+        path: String,
+        handler: @escaping StreamLocalForwardHandler
+    ) -> HandleRegistrationResult {
+        forwardedStreamLocalHandlers.withLockedValue { handlers in
+            if handlers.keys.contains(path) { return .alreadyRegistered }
+            handlers[path] = handler
+            return .success
+        }
+    }
+
+    nonisolated func unregisterStreamLocalForwardHandler(path: String) {
+        forwardedStreamLocalHandlers.withLockedValue { handlers in
+            _ = handlers.removeValue(forKey: path)
+        }
+    }
+
     nonisolated func handleChannel(channel: Channel, channelType: SSHChannelType) -> EventLoopFuture<Void> {
         switch channelType {
         case .session:
@@ -78,6 +110,13 @@ final class SSHClientInboundChannelHandler: Sendable {
         case .authAgent:
             return agentHandler.withLockedValue { handler in
                 guard let handler = handler else {
+                    return channel.eventLoop.makeFailedFuture(CitadelError.unsupported)
+                }
+                return handler(channel)
+            }
+        case .forwardedStreamLocal(let info):
+            return forwardedStreamLocalHandlers.withLockedValue { handlers in
+                guard let handler = handlers[info.socketPath] else {
                     return channel.eventLoop.makeFailedFuture(CitadelError.unsupported)
                 }
                 return handler(channel)
