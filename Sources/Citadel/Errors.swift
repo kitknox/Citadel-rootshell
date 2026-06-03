@@ -2,6 +2,7 @@ import Foundation
 
 public enum SSHClientError: Error {
     case unsupportedPasswordAuthentication, unsupportedPrivateKeyAuthentication, unsupportedHostBasedAuthentication
+    case unsupportedKeyboardInteractiveAuthentication
     case channelCreationFailed
     case allAuthenticationOptionsFailed
 }

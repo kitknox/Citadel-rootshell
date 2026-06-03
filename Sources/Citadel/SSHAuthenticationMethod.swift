@@ -112,6 +112,11 @@ public final class SSHAuthenticationMethod: NIOSSHClientUserAuthenticationDelega
                     nextChallengePromise.fail(SSHClientError.unsupportedPrivateKeyAuthentication)
                     return
                 }
+            case .keyboardInteractive:
+                guard availableMethods.contains(.keyboardInteractive) else {
+                    nextChallengePromise.fail(SSHClientError.unsupportedKeyboardInteractiveAuthentication)
+                    return
+                }
             case .none:
                 ()
             }
@@ -144,6 +149,42 @@ public final class SSHAuthenticationMethod: NIOSSHClientUserAuthenticationDelega
             }
 
             customDelegate.nextAuthenticationType(availableMethods: availableMethods, nextChallengePromise: wrapperPromise)
+        }
+    }
+
+    public func respondToKeyboardInteractiveChallenge(
+        name: String,
+        instruction: String,
+        prompts: [NIOSSHKeyboardInteractivePrompt],
+        responsePromise: EventLoopPromise<[String]>
+    ) {
+        // The active implementation is the one that produced the current offer.
+        // For keyboard-interactive that is always a custom delegate (a non-nil
+        // offer is not removed from `implementations`), so forward the challenge
+        // to it. A static `.user` offer cannot answer interactive prompts.
+        guard let implementation = implementations.first else {
+            responsePromise.fail(SSHClientError.allAuthenticationOptionsFailed)
+            return
+        }
+
+        switch implementation {
+        case .custom(let customDelegate):
+            customDelegate.respondToKeyboardInteractiveChallenge(
+                name: name,
+                instruction: instruction,
+                prompts: prompts,
+                responsePromise: responsePromise
+            )
+        case .user:
+            responsePromise.fail(SSHClientError.unsupportedKeyboardInteractiveAuthentication)
+        }
+    }
+
+    public func authenticationSucceededPartially() {
+        // Forward to the active wrapped delegate so it can avoid reusing an
+        // accepted credential for a subsequent factor.
+        if case .custom(let customDelegate) = implementations.first {
+            customDelegate.authenticationSucceededPartially()
         }
     }
 }
