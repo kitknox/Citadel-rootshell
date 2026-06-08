@@ -358,6 +358,7 @@ public struct SSHProtocolOption: Hashable, Sendable {
         case initialChannelWindowSize(Int)
         case channelOpenWindowSize(Int)
         case maximumAggregateWindowSize(Int)
+        case advertiseHostCertificateAlgorithms
     }
 
     internal let value: Value
@@ -389,6 +390,12 @@ public struct SSHProtocolOption: Hashable, Sendable {
         return .init(value: .maximumAggregateWindowSize(size))
     }
 
+    /// Advertise OpenSSH host-certificate algorithms (`*-cert-v01@openssh.com`)
+    /// in the client's KEXINIT so a certificate-capable server presents a host
+    /// certificate. The parsed certificate reaches the host key validator as a
+    /// `.certified` `NIOSSHPublicKey`. Client-only; ignored for servers.
+    public static let advertiseHostCertificateAlgorithms = Self(value: .advertiseHostCertificateAlgorithms)
+
     func apply(to client: inout SSHClientConfiguration) {
         switch value {
         case .maximumPacketSize(let size):
@@ -399,6 +406,8 @@ public struct SSHProtocolOption: Hashable, Sendable {
             client.channelOpenWindowSize = size
         case .maximumAggregateWindowSize(let size):
             client.maximumAggregateWindowSize = size
+        case .advertiseHostCertificateAlgorithms:
+            client.advertiseHostCertificateAlgorithms = true
         }
     }
 
@@ -412,6 +421,8 @@ public struct SSHProtocolOption: Hashable, Sendable {
             server.channelOpenWindowSize = size
         case .maximumAggregateWindowSize(let size):
             server.maximumAggregateWindowSize = size
+        case .advertiseHostCertificateAlgorithms:
+            break // Client-only option.
         }
     }
 }
