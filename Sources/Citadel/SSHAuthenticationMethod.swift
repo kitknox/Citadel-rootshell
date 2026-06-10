@@ -75,6 +75,26 @@ public final class SSHAuthenticationMethod: NIOSSHClientUserAuthenticationDelega
         return SSHAuthenticationMethod(username: username, offer: .privateKey(.init(privateKey: .init(p521Key: privateKey))))
     }
     
+    /// Creates an OpenSSH certificate based authentication method.
+    ///
+    /// The certificate is offered through the publickey method: the userauth request carries the
+    /// certificate blob and its cert algorithm name, signed by `privateKey` (which must correspond
+    /// to the certificate's embedded public key).
+    /// - Parameters:
+    /// - username: The username to authenticate with.
+    /// - privateKey: The private key matching the certificate's embedded public key.
+    /// - certifiedKey: The OpenSSH user certificate, e.g. parsed via
+    ///   `NIOSSHCertifiedPublicKey(openSSHCertifiedPublicKey:)`.
+    public static func certificate(username: String, privateKey: NIOSSHPrivateKey, certifiedKey: NIOSSHCertifiedPublicKey) -> SSHAuthenticationMethod {
+        return SSHAuthenticationMethod(username: username, offer: .privateKey(.init(privateKey: privateKey, certifiedKey: certifiedKey)))
+    }
+
+    /// Creates an OpenSSH certificate based authentication method for an RSA key.
+    /// The userauth request uses `rsa-sha2-256-cert-v01@openssh.com` with an `rsa-sha2-256` signature.
+    public static func rsaCertificate(username: String, privateKey: Insecure.RSA.PrivateKey, certifiedKey: NIOSSHCertifiedPublicKey) -> SSHAuthenticationMethod {
+        return SSHAuthenticationMethod(username: username, offer: .privateKey(.init(privateKey: .init(custom: privateKey), certifiedKey: certifiedKey)))
+    }
+
     public static func custom(_ auth: NIOSSHClientUserAuthenticationDelegate) -> SSHAuthenticationMethod {
         return SSHAuthenticationMethod(custom: auth)
     }

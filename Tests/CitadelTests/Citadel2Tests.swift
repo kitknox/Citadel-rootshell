@@ -315,6 +315,8 @@ final class Citadel2Tests: XCTestCase {
                             }
                         case .stderr(let value):
                             XCTFail("Unexpected stderr: \(String(buffer: value))")
+                        case .exitStatus:
+                            break
                         }
                     }
                 }

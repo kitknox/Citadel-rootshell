@@ -16,6 +16,12 @@ extension Insecure.RSA {
         public static var authAlgorithmName: String { "rsa-sha2-256" }
         public static let keyExchangeAlgorithms = ["diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1"]
 
+        /// OpenSSH certificate support: the cert blob carries `ssh-rsa-cert-v01@openssh.com`
+        /// while the userauth request names the SHA-2 cert algorithm (RFC 8332 section 3.2).
+        /// The signature itself stays `rsa-sha2-256`.
+        public static var certifiedKeyPrefix: String? { "ssh-rsa-cert-v01@openssh.com" }
+        public static var certifiedAuthAlgorithmName: String? { "rsa-sha2-256-cert-v01@openssh.com" }
+
         // Explicitly implement instance property to override protocol extension default
         public var authAlgorithmName: String {
             Self.authAlgorithmName

@@ -1,0 +1,449 @@
+{
+  "" : {
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Citadel-primary.dia",
+    "emit-module-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Citadel-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Citadel-primary-emit-module.dia",
+    "pch" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Citadel-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Citadel-primary.swiftdeps"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/AgentForwarding/AgentChannelHandler.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentChannelHandler.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentChannelHandler.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentChannelHandler.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentChannelHandler.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentChannelHandler.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentChannelHandler.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentChannelHandler.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentChannelHandler~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/AgentForwarding/AgentForwarding+Client.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentForwarding+Client.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentForwarding+Client.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentForwarding+Client.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentForwarding+Client.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentForwarding+Client.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentForwarding+Client.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentForwarding+Client.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AgentForwarding+Client~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/AgentForwarding/SSHAgentDelegate.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentDelegate.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentDelegate.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentDelegate.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentDelegate.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentDelegate.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentDelegate.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentDelegate.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentDelegate~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/AgentForwarding/SSHAgentProtocol.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentProtocol.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentProtocol.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentProtocol.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentProtocol.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentProtocol.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentProtocol.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentProtocol.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAgentProtocol~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Algorithms/AES-ETM.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES-ETM.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES-ETM.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES-ETM.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES-ETM.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES-ETM.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES-ETM.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES-ETM.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES-ETM~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Algorithms/AES.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/AES~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Algorithms/DH-Helpers.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DH-Helpers.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DH-Helpers.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DH-Helpers.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DH-Helpers.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DH-Helpers.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DH-Helpers.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DH-Helpers.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DH-Helpers~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Algorithms/DiffieHellmanGroup14Sha1.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha1.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha1.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha1.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha1.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha1.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha1.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha1.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha1~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Algorithms/DiffieHellmanGroup14Sha256.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha256.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha256.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha256.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha256.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha256.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha256.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha256.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DiffieHellmanGroup14Sha256~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Algorithms/MLDSA.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLDSA.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLDSA.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLDSA.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLDSA.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLDSA.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLDSA.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLDSA.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLDSA~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Algorithms/MLKem768X25519Sha256.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLKem768X25519Sha256.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLKem768X25519Sha256.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLKem768X25519Sha256.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLKem768X25519Sha256.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLKem768X25519Sha256.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLKem768X25519Sha256.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLKem768X25519Sha256.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/MLKem768X25519Sha256~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Algorithms/RSA.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RSA.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RSA.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RSA.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RSA.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RSA.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RSA.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RSA.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RSA~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/BCrypt.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/BCrypt.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/BCrypt.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/BCrypt.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/BCrypt.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/BCrypt.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/BCrypt.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/BCrypt.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/BCrypt~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/ByteBufferHelpers.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ByteBufferHelpers.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ByteBufferHelpers.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ByteBufferHelpers.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ByteBufferHelpers.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ByteBufferHelpers.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ByteBufferHelpers.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ByteBufferHelpers.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ByteBufferHelpers~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/ChannelUnwrapper.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ChannelUnwrapper.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ChannelUnwrapper.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ChannelUnwrapper.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ChannelUnwrapper.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ChannelUnwrapper.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ChannelUnwrapper.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ChannelUnwrapper.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ChannelUnwrapper~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Client.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Client.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Client.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Client.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Client.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Client.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Client.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Client.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Client~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/ClientSession.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ClientSession.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ClientSession.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ClientSession.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ClientSession.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ClientSession.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ClientSession.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ClientSession.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ClientSession~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/DirectTCPIP/Client/DirectTCPIP+Client.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Client.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Client.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Client.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Client.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Client.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Client.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Client.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Client~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/DirectTCPIP/Server/DirectTCPIP+Server.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Server.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Server.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Server.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Server.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Server.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Server.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Server.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/DirectTCPIP+Server~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Errors.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Errors.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Errors.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Errors.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Errors.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Errors.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Errors.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Errors.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Errors~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Exec/Client/ExecClient.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecClient.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecClient.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecClient.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecClient.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecClient.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecClient.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecClient.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecClient~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Exec/Server/ExecDelegate.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecDelegate.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecDelegate.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecDelegate.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecDelegate.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecDelegate.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecDelegate.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecDelegate.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecDelegate~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Exec/Server/ExecHandler.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecHandler.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecHandler.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecHandler.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecHandler.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecHandler.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecHandler.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecHandler.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ExecHandler~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/NIOGlueHandler.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/NIOGlueHandler.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/NIOGlueHandler.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/NIOGlueHandler.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/NIOGlueHandler.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/NIOGlueHandler.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/NIOGlueHandler.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/NIOGlueHandler.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/NIOGlueHandler~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/OpenSSHKey.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/OpenSSHKey.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/OpenSSHKey.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/OpenSSHKey.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/OpenSSHKey.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/OpenSSHKey.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/OpenSSHKey.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/OpenSSHKey.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/OpenSSHKey~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/RemotePortForward/Client/RemotePortForward+Client.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Client.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Client.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Client.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Client.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Client.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Client.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Client.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Client~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/RemotePortForward/Server/RemotePortForward+Server.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Server.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Server.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Server.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Server.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Server.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Server.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Server.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/RemotePortForward+Server~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SFTP/Client/SFTPClient.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClient.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClient.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClient.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClient.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClient.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClient.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClient.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClient~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SFTP/Client/SFTPClientInboundHandler.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClientInboundHandler.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClientInboundHandler.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClientInboundHandler.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClientInboundHandler.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClientInboundHandler.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClientInboundHandler.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClientInboundHandler.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPClientInboundHandler~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SFTP/Client/SFTPFile.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFile.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFile.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFile.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFile.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFile.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFile.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFile.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFile~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SFTP/SFTPBasicEnums.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPBasicEnums.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPBasicEnums.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPBasicEnums.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPBasicEnums.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPBasicEnums.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPBasicEnums.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPBasicEnums.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPBasicEnums~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SFTP/SFTPFileFlags.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFileFlags.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFileFlags.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFileFlags.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFileFlags.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFileFlags.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFileFlags.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFileFlags.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPFileFlags~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SFTP/SFTPMessage.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessage.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessage.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessage.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessage.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessage.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessage.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessage.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessage~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SFTP/SFTPMessageParser.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessageParser.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessageParser.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessageParser.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessageParser.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessageParser.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessageParser.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessageParser.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPMessageParser~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SFTP/SFTPSerializer.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPSerializer.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPSerializer.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPSerializer.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPSerializer.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPSerializer.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPSerializer.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPSerializer.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPSerializer~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SFTP/Server/SFTPServer.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServer.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServer.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServer.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServer.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServer.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServer.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServer.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServer~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SFTP/Server/SFTPServerInboundHandler.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServerInboundHandler.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServerInboundHandler.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServerInboundHandler.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServerInboundHandler.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServerInboundHandler.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServerInboundHandler.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServerInboundHandler.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SFTPServerInboundHandler~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SSHAuthenticationMethod.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAuthenticationMethod.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAuthenticationMethod.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAuthenticationMethod.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAuthenticationMethod.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAuthenticationMethod.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAuthenticationMethod.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAuthenticationMethod.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHAuthenticationMethod~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SSHCert.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHCert.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHCert.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHCert.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHCert.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHCert.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHCert.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHCert.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHCert~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SSHConnectionPoolSettings.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHConnectionPoolSettings.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHConnectionPoolSettings.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHConnectionPoolSettings.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHConnectionPoolSettings.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHConnectionPoolSettings.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHConnectionPoolSettings.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHConnectionPoolSettings.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHConnectionPoolSettings~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/SSHKeyTypeDetection.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHKeyTypeDetection.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHKeyTypeDetection.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHKeyTypeDetection.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHKeyTypeDetection.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHKeyTypeDetection.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHKeyTypeDetection.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHKeyTypeDetection.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/SSHKeyTypeDetection~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Server.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Server.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Server.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Server.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Server.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Server.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Server.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Server.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/Server~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/Shell/Server/ShellDelegate.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ShellDelegate.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ShellDelegate.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ShellDelegate.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ShellDelegate.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ShellDelegate.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ShellDelegate.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ShellDelegate.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/ShellDelegate~partial.swiftmodule"
+  },
+  "/Users/kit/Development/Citadel/Sources/Citadel/TTY/Client/TTY.swift" : {
+    "const-values" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/TTY.swiftconstvalues",
+    "dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/TTY.d",
+    "diagnostics" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/TTY.dia",
+    "index-unit-output-path" : "/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/TTY.o",
+    "llvm-bc" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/TTY.bc",
+    "object" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/TTY.o",
+    "swift-dependencies" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/TTY.swiftdeps",
+    "swiftmodule" : "/Users/kit/Development/Citadel/build/Citadel.build/DebugAppStore-iphonesimulator/Citadel.build/Objects-normal/arm64/TTY~partial.swiftmodule"
+  }
+}
