@@ -132,6 +132,7 @@ final class ClientHandshakeHandler: ChannelInboundHandler, @unchecked Sendable {
     private let loginTimeout: TimeAmount
     private var scheduledTimeout: Scheduled<Void>?
     private var completed = false
+    private let onBanner: (@Sendable (_ message: String, _ languageTag: String) -> Void)?
     let logger = Logger(label: "nl.orlandos.citadel.handshake")
 
     /// A future that will be fulfilled when the handshake is complete.
@@ -139,9 +140,14 @@ final class ClientHandshakeHandler: ChannelInboundHandler, @unchecked Sendable {
         promise.futureResult
     }
 
-    init(eventLoop: EventLoop, loginTimeout: TimeAmount) {
+    init(
+        eventLoop: EventLoop,
+        loginTimeout: TimeAmount,
+        onBanner: (@Sendable (_ message: String, _ languageTag: String) -> Void)? = nil
+    ) {
         self.promise = eventLoop.makePromise(of: Void.self)
         self.loginTimeout = loginTimeout
+        self.onBanner = onBanner
     }
 
     func handlerAdded(context: ChannelHandlerContext) {
@@ -159,6 +165,11 @@ final class ClientHandshakeHandler: ChannelInboundHandler, @unchecked Sendable {
             completed = true
             scheduledTimeout?.cancel()
             self.promise.succeed(())
+        } else if let banner = event as? NIOUserAuthBannerEvent {
+            // Surface server auth banners (SSH_MSG_USERAUTH_BANNER) to the
+            // consumer, then forward downstream so we stay a good NIO citizen.
+            onBanner?(banner.message, banner.languageTag)
+            context.fireUserInboundEventTriggered(event)
         }
     }
 
@@ -187,6 +198,11 @@ public struct SSHClientSettings: Sendable {
     internal var channelHandlers: [ChannelHandler & Sendable] = []
     public var connectTimeout: TimeAmount = .seconds(30)
     public var loginTimeout: TimeAmount = .seconds(60)
+
+    /// Called on the event loop with the server's auth banner message and
+    /// language tag (`SSH_MSG_USERAUTH_BANNER`, RFC 4252 §5.4) when one is
+    /// received during authentication. Defaults to nil (banner ignored).
+    public var onUserAuthBanner: (@Sendable (_ message: String, _ languageTag: String) -> Void)?
 
     public init(
         host: String,
@@ -248,7 +264,8 @@ final class SSHClientSession: Sendable {
     ) -> EventLoopFuture<Void> {
         let handshakeHandler = ClientHandshakeHandler(
             eventLoop: channel.eventLoop,
-            loginTimeout: settings.loginTimeout
+            loginTimeout: settings.loginTimeout,
+            onBanner: settings.onUserAuthBanner
         )
         var clientConfiguration = SSHClientConfiguration(
             userAuthDelegate: settings.authenticationMethod(),
