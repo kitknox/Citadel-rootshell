@@ -3,6 +3,9 @@ import NIOCore
 import NIOPosix
 import NIOSSH
 import Logging
+#if canImport(Network)
+import NIOTransportServices
+#endif
 
 /// A remote port forward represents an active port forward on the remote SSH server.
 ///
@@ -260,10 +263,34 @@ extension SSHClient {
         try await withRemotePortForward(
             host: host,
             port: port,
+            // The forwarded-tcpip channel carries SSHChannelData; translate to
+            // ByteBuffer before the NIOAsyncChannel wrap or reads trap.
+            configure: { channel in
+                channel.pipeline.addHandler(DataToBufferCodec())
+            },
             onOpen: onOpen
          ) { inboundClient in
-            let outboundClient = try await ClientBootstrap(group: inboundClient.channel.eventLoop)
-                .connect(host: localHost, port: localPort)
+            // The forwarded-tcpip channel may live on a NIOTS (Network.framework)
+            // event loop, which ClientBootstrap rejects with a fatal precondition.
+            // Pick a bootstrap compatible with the loop via the validating inits.
+            let eventLoop = inboundClient.channel.eventLoop
+            let connectFuture: EventLoopFuture<Channel>
+            #if canImport(Network)
+            if let tsBootstrap = NIOTSConnectionBootstrap(validatingGroup: eventLoop) {
+                connectFuture = tsBootstrap.connect(host: localHost, port: localPort)
+            } else if let bootstrap = ClientBootstrap(validatingGroup: eventLoop) {
+                connectFuture = bootstrap.connect(host: localHost, port: localPort)
+            } else {
+                throw SSHClientError.channelCreationFailed
+            }
+            #else
+            guard let bootstrap = ClientBootstrap(validatingGroup: eventLoop) else {
+                throw SSHClientError.channelCreationFailed
+            }
+            connectFuture = bootstrap.connect(host: localHost, port: localPort)
+            #endif
+
+            let outboundClient = try await connectFuture
                 .flatMapThrowing { channel in
                     let channel = try NIOAsyncChannel<ByteBuffer, ByteBuffer>(
                         wrappingChannelSynchronously: channel
