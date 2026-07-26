@@ -1,4 +1,0 @@
-module Citadel {
-header "Citadel-Swift.h"
-export *
-}
