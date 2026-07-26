@@ -121,6 +121,10 @@ final class SSHClientInboundChannelHandler: Sendable {
                 }
                 return handler(channel)
             }
+        case .directStreamLocal:
+            // direct-streamlocal is client-initiated; a server must never
+            // open one toward us.
+            return channel.eventLoop.makeFailedFuture(CitadelError.unsupported)
         }
     }
 }

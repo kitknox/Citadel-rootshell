@@ -189,6 +189,10 @@ final class CitadelServerDelegate: Sendable, GlobalRequestDelegate {
             // client receives forwarded-streamlocal channels). Reject
             // on server until/unless someone needs the inverse.
             return channel.eventLoop.makeFailedFuture(CitadelError.unsupported)
+        case .directStreamLocal:
+            // Unix-socket dialing on behalf of a client is not offered
+            // by the Citadel server implementation.
+            return channel.eventLoop.makeFailedFuture(CitadelError.unsupported)
         }
     }
 
