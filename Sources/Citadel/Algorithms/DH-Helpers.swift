@@ -328,8 +328,12 @@ extension ByteBuffer {
     mutating func writeCompositeSSHString(_ compositeFunction: (inout ByteBuffer) throws -> Int) rethrows -> Int {
         // Reserve 4 bytes for the length.
         let originalWriterIndex = self.writerIndex
-        self.moveWriterIndex(forwardBy: 4)
-        
+        // Write a placeholder instead of just advancing the writer index:
+        // moveWriterIndex(forwardBy:) does not grow the buffer and traps when
+        // the buffer is at a capacity boundary. Backport of apple/swift-nio-ssh
+        // db57f32 "Correctly resize ByteBuffers (#150)".
+        self.writeInteger(UInt32(0))
+
         var writtenLength: Int
         do {
             writtenLength = try compositeFunction(&self)

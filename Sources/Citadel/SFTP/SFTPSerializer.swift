@@ -5,7 +5,10 @@ final class SFTPMessageSerializer: MessageToByteEncoder {
     
     func encode(data: SFTPMessage, out: inout ByteBuffer) throws {
         let lengthIndex = out.writerIndex
-        out.moveWriterIndex(forwardBy: 4)
+        // Placeholder rather than moveWriterIndex(forwardBy:), which does not grow
+        // the buffer and traps at a capacity boundary. This encoder shares one
+        // buffer across messages, so the writer index is not always zero here.
+        out.writeInteger(UInt32(0))
         
         switch data {
         case .initialize(let initialize):

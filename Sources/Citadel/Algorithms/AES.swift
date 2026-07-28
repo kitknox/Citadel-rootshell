@@ -286,7 +286,10 @@ public final class AES128CTR: NIOSSHTransportProtection {
         let packetPaddingIndex = outboundBuffer.writerIndex + packetLengthLength
         let packetPaddingLength = MemoryLayout<UInt8>.size
 
-        outboundBuffer.moveWriterIndex(forwardBy: packetLengthLength + packetPaddingLength)
+        // Placeholders for packet_length + padding_length, overwritten below via
+        // setInteger. moveWriterIndex(forwardBy:) does not grow the buffer and traps
+        // at a capacity boundary, which this buffer hits as it accumulates packets.
+        outboundBuffer.writeMultipleIntegers(UInt32(0), UInt8(0))
 
         // First, we write the packet.
         let payloadBytes = outboundBuffer.writeEncryptablePayload(packet)
@@ -647,7 +650,10 @@ public final class AES256CTR: NIOSSHTransportProtection {
         let packetPaddingIndex = outboundBuffer.writerIndex + packetLengthLength
         let packetPaddingLength = MemoryLayout<UInt8>.size
 
-        outboundBuffer.moveWriterIndex(forwardBy: packetLengthLength + packetPaddingLength)
+        // Placeholders for packet_length + padding_length, overwritten below via
+        // setInteger. moveWriterIndex(forwardBy:) does not grow the buffer and traps
+        // at a capacity boundary, which this buffer hits as it accumulates packets.
+        outboundBuffer.writeMultipleIntegers(UInt32(0), UInt8(0))
 
         let payloadBytes = outboundBuffer.writeEncryptablePayload(packet)
 
