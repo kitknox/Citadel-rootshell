@@ -156,13 +156,22 @@ public struct SSHAlgorithms: Sendable {
             algorithms.preferredPublicKeyAlgorithms = [
                 (MLDSA65SSH.PublicKey.self, MLDSA65SSH.Signature.self),
                 (MLDSA87SSH.PublicKey.self, MLDSA87SSH.Signature.self),
+                (MLDSA44Ed25519SSH.PublicKey.self, MLDSA44Ed25519SSH.Signature.self),
             ]
         } else {
             // Pre-iOS 26: sntrup761 is the only PQ option available
             algorithms.preferredKeyExchangeAlgorithms = [
                 Sntrup761X25519Sha512.self,
             ]
+            // BoringSSL-backed, so available regardless of OS version
+            algorithms.preferredPublicKeyAlgorithms = [
+                (MLDSA44Ed25519SSH.PublicKey.self, MLDSA44Ed25519SSH.Signature.self),
+            ]
         }
+        // Pure ML-DSA-44 (BoringSSL-backed, no gate) — appended in both branches
+        algorithms.preferredPublicKeyAlgorithms?.append(
+            (MLDSA44SSH.PublicKey.self, MLDSA44SSH.Signature.self)
+        )
 
         // RSA appended after NIOSSH built-in ed25519/ecdsa
         algorithms.publicKeyAlgorihtms = .add([

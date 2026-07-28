@@ -89,8 +89,26 @@ public enum MLDSA65SSH {
             PublicKey(backing.publicKey)
         }
 
+        /// Typed accessor for the raw FIPS 204 public key bytes.
+        public var mldsaPublicKey: PublicKey {
+            PublicKey(backing.publicKey)
+        }
+
+        /// 32-byte FIPS 204 keygen seed — the durable representation.
+        public var seedRepresentation: Data {
+            backing.seedRepresentation
+        }
+
         public init(_ backing: CryptoKit.MLDSA65.PrivateKey) {
             self.backing = backing
+        }
+
+        public init() throws {
+            self.backing = try CryptoKit.MLDSA65.PrivateKey()
+        }
+
+        public init(seedRepresentation: Data) throws {
+            self.backing = try CryptoKit.MLDSA65.PrivateKey(seedRepresentation: seedRepresentation, publicKey: nil)
         }
 
         public func signature<D: DataProtocol>(for data: D) throws -> NIOSSHSignatureProtocol {
@@ -173,8 +191,26 @@ public enum MLDSA87SSH {
             PublicKey(backing.publicKey)
         }
 
+        /// Typed accessor for the raw FIPS 204 public key bytes.
+        public var mldsaPublicKey: PublicKey {
+            PublicKey(backing.publicKey)
+        }
+
+        /// 32-byte FIPS 204 keygen seed — the durable representation.
+        public var seedRepresentation: Data {
+            backing.seedRepresentation
+        }
+
         public init(_ backing: CryptoKit.MLDSA87.PrivateKey) {
             self.backing = backing
+        }
+
+        public init() throws {
+            self.backing = try CryptoKit.MLDSA87.PrivateKey()
+        }
+
+        public init(seedRepresentation: Data) throws {
+            self.backing = try CryptoKit.MLDSA87.PrivateKey(seedRepresentation: seedRepresentation, publicKey: nil)
         }
 
         public func signature<D: DataProtocol>(for data: D) throws -> NIOSSHSignatureProtocol {
