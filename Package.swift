@@ -16,8 +16,12 @@ let package = Package(
         ),
     ],
     dependencies: [
-        // Use local fixed fork of swift-nio-ssh
-        .package(path: "../swift-nio-ssh"),
+        // Rootshell's public fork carries the SSH algorithm and platform fixes
+        // required by Citadel.
+        .package(
+            url: "https://github.com/kitknox/swift-nio-ssh-rootshell.git",
+            exact: "0.1.0"
+        ),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/attaswift/BigInt.git", from: "5.2.0"),
         // Pinned exactly: CMLDSA44 declares private CCryptoBoringSSL_MLDSA44_*
@@ -44,7 +48,7 @@ let package = Package(
                 .target(name: "CCitadelBcrypt"),
                 .target(name: "CSntrup761"),
                 .target(name: "CMLDSA44"),
-                .product(name: "NIOSSH", package: "swift-nio-ssh"),
+                .product(name: "NIOSSH", package: "swift-nio-ssh-rootshell"),
                 .product(name: "NIOTransportServices", package: "swift-nio-transport-services"),
                 .product(name: "Crypto", package: "swift-crypto"),
                 .product(name: "_CryptoExtras", package: "swift-crypto"),
@@ -62,7 +66,7 @@ let package = Package(
             name: "CitadelTests",
             dependencies: [
                 "Citadel",
-                .product(name: "NIOSSH", package: "swift-nio-ssh"),
+                .product(name: "NIOSSH", package: "swift-nio-ssh-rootshell"),
                 .product(name: "BigInt", package: "BigInt"),
                 .product(name: "Logging", package: "swift-log"),
             ],
