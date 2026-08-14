@@ -1,6 +1,49 @@
-Citadel is a high level API around [NIOSSH](https://github.com/apple/swift-nio-ssh). It makes NIOSSH accessible and easy to adopt, while providing tools otherwise out-of-scope for NIOSSH.
+# Citadel — Rootshell fork
 
-Citadel is in active development by our team or Swift experts. Get in touch with our [Discord Community](https://discord.gg/H6799jh).
+Citadel is a high-level Swift API around [NIOSSH](https://github.com/apple/swift-nio-ssh). It makes NIOSSH easier to adopt while providing SSH client, server, forwarding, SFTP, and key-handling features that are outside NIOSSH's scope.
+
+This repository is the [Rootshell](https://www.rootshell.com)-maintained fork of [orlandos-nl/Citadel](https://github.com/orlandos-nl/Citadel). It was derived from the upstream `0.11.1` line and now follows an independent, Rootshell-driven roadmap. It does not automatically merge or track subsequent upstream changes.
+
+The `Citadel` module and public product names remain unchanged. The fork is used by Rootshell, but it is an independently usable Swift package. Report Rootshell application problems in the [Rootshell issue tracker](https://github.com/kitknox/rootshell/issues); report reproducible library problems in this repository.
+
+## Fork highlights
+
+In addition to the inherited Citadel functionality, this fork includes:
+
+- SSH agent forwarding and multi-attempt authentication support
+- Remote TCP forwarding and OpenSSH Unix-domain socket forwarding
+- Bidirectional command I/O, login banners, keepalives, and connection tuning
+- OpenSSH user and host certificate support
+- `sntrup761x25519-sha512` and `mlkem768x25519-sha256` hybrid key exchange
+- ML-DSA host keys and hybrid ML-DSA-44 + Ed25519 user keys
+- Encrypt-then-MAC transport protection and additional compatibility ciphers
+
+See [CHANGELOG.md](CHANGELOG.md) for the release-level history of this fork.
+
+## Requirements and support
+
+- Swift tools 5.9 or newer
+- macOS 14 or newer, or iOS/iPadOS 17 or newer
+- A current Apple SDK and Xcode 26 for APIs that reference Apple's post-quantum cryptography types
+
+This fork is Apple-platform focused. The bundled `sntrup761` implementation uses CommonCrypto, so Linux is not currently a supported target.
+
+Some post-quantum APIs are available only on iOS, macOS, Mac Catalyst, and visionOS 26 or newer. The ML-DSA-44 C bridge uses implementation details from the exactly pinned `swift-crypto` release. Revalidate that bridge before changing the pin. These additions have not received an independent security audit.
+
+The package remains pre-1.0. Source and API compatibility are maintained on a best-effort basis.
+
+## Installation
+
+After the `0.13.0` release is published, add the package to your Swift package manifest:
+
+```swift
+.package(
+    url: "https://github.com/kitknox/Citadel-rootshell.git",
+    from: "0.13.0"
+)
+```
+
+Then add the `Citadel` product to the target that uses it.
 
 ## Client Usage
 
@@ -66,7 +109,7 @@ for try await event in streams {
 }
 ```
 
-Citadel currently  expose APIs for streaming into a process' `stdin`. only  withPTY and withTTY.
+Citadel currently exposes APIs for streaming into a process's `stdin` through `withPTY` and `withTTY`.
 
 An example of how pty model can be used:
 
@@ -233,7 +276,7 @@ let server = try await SSHServer.host(
 )
 ```
 
-Then, enable the SFTP server or allow executing commands. Don't worry, these commands do not target the host system. You can implement filsystem and shell access yourself! So you get to dictate permissions, where it's actually stored, and do any shenanigans you need:
+Then, enable the SFTP server or allow executing commands. These commands do not target the host system automatically. You implement filesystem and shell access yourself, including its permissions and backing storage:
 
 ```swift
 server.enableExec(withDelegate: MyExecDelegate())
@@ -256,7 +299,7 @@ func setEnvironmentValue(_ value: String, forKey key: String) async throws
 func start(command: String, outputHandler: ExecOutputHandler) async throws -> ExecCommandContext
 ```
 
-The `setEnvironmentValue` function adds an environment variable, which you can pass onto child processes. The `start` command simply executed the command "in the shell". How and if you process that command is up to you. The executed `command` is inputted as the first argument, and the second argument (the `ExecOutputHandler`), contains the authenticated user, Pipes for `stdin`, `stdout` and `stderr` as well as some function calls for indicating a process has exited.
+The `setEnvironmentValue` function adds an environment variable, which you can pass to child processes. The `start` function executes the command using the shell implementation you provide. The first argument is the requested command. The second argument, `ExecOutputHandler`, contains the authenticated user, pipes for `stdin`, `stdout`, and `stderr`, plus functions for indicating that a process has exited.
 
 Whether you simulate a process, or hook up a real child-process, the requirements are the same. You **must** provide an exit code or throw an error out of the executing function. You can also `fail` on the outputHandler the process using an error. Finally, you'll have to return an `ExecCommandContext` that represents your process. This can receive remote `terminate` signals, or receive a notification that `stdin` was closed through `inputClosed`.
 
@@ -362,12 +405,18 @@ let client = try await SSHClient.connect(
 
 You can also use `SSHAlgorithms.all` to enable all supported algorithms.
 
-## TODO
-
-A couple of code is held back until further work in SwiftNIO SSH is completed. We're currently working with Apple to resolve these.
-
-- [ ] RSA Authentication (implemented & supported, but in a [fork of NIOSSH](https://github.com/Joannis/swift-nio-ssh-1/pull/1))
-
 ## Contributing
 
-I'm happy to accept ideas and PRs for new API's.
+Focused issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing a change. The roadmap is driven by Rootshell's requirements, and maintenance is provided on a best-effort basis without a support SLA.
+
+This fork does not accept automatic or incidental synchronization from upstream Citadel. See [MAINTAINING.md](MAINTAINING.md) for the upstream and release policies.
+
+## Security
+
+Do not report vulnerabilities in a public issue. Follow [SECURITY.md](SECURITY.md) to submit a private report.
+
+## Acknowledgements and license
+
+Citadel was created by Joannis Orlandos and developed by its upstream contributors. This fork preserves their Git history and copyright attribution. Rootshell-specific changes were developed by Kit Knox and other contributors recorded in the repository history.
+
+Citadel is distributed under the [MIT License](LICENSE). Additional notices for bundled third-party source are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Rootshell application support
+    url: https://github.com/kitknox/rootshell/issues
+    about: Report issues with the Rootshell application rather than the Citadel library.
+  - name: Private security report
+    url: https://github.com/kitknox/Citadel-rootshell/security/advisories/new
+    about: Report suspected security vulnerabilities privately.
