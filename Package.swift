@@ -16,7 +16,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        // Rootshell's public fork carries the SSH algorithm and platform fixes
+        // rootshell's public fork carries the SSH algorithm and platform fixes
         // required by Citadel.
         .package(
             url: "https://github.com/kitknox/swift-nio-ssh-rootshell.git",

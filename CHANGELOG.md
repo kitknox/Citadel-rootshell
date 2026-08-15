@@ -1,8 +1,8 @@
 # Changelog
 
-All notable changes to the Rootshell-maintained Citadel fork are documented here.
+All notable changes to the rootshell-maintained Citadel fork are documented here.
 
-This project follows semantic versioning while it remains pre-1.0. The inherited upstream tags through `0.11.1` predate the Rootshell fork release line.
+This project follows semantic versioning while it remains pre-1.0. The inherited upstream tags through `0.11.1` predate the rootshell fork release line.
 
 ## [0.13.0] - Unreleased
 

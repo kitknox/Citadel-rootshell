@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Security fixes are made on a best-effort basis for the latest published Rootshell-fork release and the current `main` branch. Older releases are not supported.
+Security fixes are made on a best-effort basis for the latest published rootshell-fork release and the current `main` branch. Older releases are not supported.
 
 ## Reporting a vulnerability
 

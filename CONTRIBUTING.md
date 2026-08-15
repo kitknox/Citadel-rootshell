@@ -1,8 +1,8 @@
 # Contributing
 
-Thanks for helping improve the Rootshell-maintained Citadel fork. Focused bug fixes, tests, documentation improvements, and features that fit the SSH-library scope are welcome.
+Thanks for helping improve the rootshell-maintained Citadel fork. Focused bug fixes, tests, documentation improvements, and features that fit the SSH-library scope are welcome.
 
-The roadmap is driven by Rootshell's requirements. Maintainer response and review are best effort; this project does not provide a support SLA.
+The roadmap is driven by rootshell's requirements. Maintainer response and review are best effort; this project does not provide a support SLA.
 
 ## Before opening an issue
 
@@ -10,7 +10,7 @@ The roadmap is driven by Rootshell's requirements. Maintainer response and revie
 - Reduce bugs to the smallest practical reproducer.
 - Include the Citadel version or commit, Xcode and Swift versions, Apple platform and OS version, and SSH peer implementation.
 - Remove credentials, hostnames, IP addresses, private keys, user data, and sensitive log content.
-- Report Rootshell application behavior in the [Rootshell issue tracker](https://github.com/kitknox/rootshell/issues).
+- Report rootshell application behavior in the [rootshell issue tracker](https://github.com/kitknox/rootshell/issues).
 - Report security vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 ## Pull requests

@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem in the Rootshell-maintained Citadel fork.
+description: Report a reproducible problem in the rootshell-maintained Citadel fork.
 title: "[Bug]: "
 labels:
   - bug
@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Do not include credentials, private keys, sensitive host information, or security vulnerabilities. Rootshell application problems belong in https://github.com/kitknox/rootshell/issues.
+        Do not include credentials, private keys, sensitive host information, or security vulnerabilities. rootshell application problems belong in https://github.com/kitknox/rootshell/issues.
   - type: input
     id: version
     attributes:
@@ -70,5 +70,5 @@ body:
           required: true
         - label: I removed credentials, private keys, and sensitive infrastructure details.
           required: true
-        - label: This is not a security vulnerability or a Rootshell application issue.
+        - label: This is not a security vulnerability or a rootshell application issue.
           required: true

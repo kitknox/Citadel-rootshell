@@ -1,4 +1,4 @@
-# Maintaining the Rootshell fork
+# Maintaining the rootshell fork
 
 This document records the policies for maintaining and releasing `kitknox/Citadel-rootshell`.
 

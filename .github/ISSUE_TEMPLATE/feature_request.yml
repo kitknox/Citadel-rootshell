@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        The fork's roadmap is driven by Rootshell's requirements. Please describe the library-level use case rather than only a proposed API.
+        The fork's roadmap is driven by rootshell's requirements. Please describe the library-level use case rather than only a proposed API.
   - type: textarea
     id: problem
     attributes:

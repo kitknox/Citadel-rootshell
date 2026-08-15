@@ -1,10 +1,10 @@
-# Citadel — Rootshell fork
+# Citadel — rootshell fork
 
 Citadel is a high-level Swift API around [NIOSSH](https://github.com/apple/swift-nio-ssh). It makes NIOSSH easier to adopt while providing SSH client, server, forwarding, SFTP, and key-handling features that are outside NIOSSH's scope.
 
-This repository is the [Rootshell](https://www.rootshell.com)-maintained fork of [orlandos-nl/Citadel](https://github.com/orlandos-nl/Citadel). It was derived from the upstream `0.11.1` line and now follows an independent, Rootshell-driven roadmap. It does not automatically merge or track subsequent upstream changes.
+This repository is the [rootshell](https://www.rootshell.com)-maintained fork of [orlandos-nl/Citadel](https://github.com/orlandos-nl/Citadel). It was derived from the upstream `0.11.1` line and now follows an independent, rootshell-driven roadmap. It does not automatically merge or track subsequent upstream changes.
 
-The `Citadel` module and public product names remain unchanged. The fork is used by Rootshell, but it is an independently usable Swift package. Report Rootshell application problems in the [Rootshell issue tracker](https://github.com/kitknox/rootshell/issues); report reproducible library problems in this repository.
+The `Citadel` module and public product names remain unchanged. The fork is used by rootshell, but it is an independently usable Swift package. Report rootshell application problems in the [rootshell issue tracker](https://github.com/kitknox/rootshell/issues); report reproducible library problems in this repository.
 
 ## Fork highlights
 
@@ -407,7 +407,7 @@ You can also use `SSHAlgorithms.all` to enable all supported algorithms.
 
 ## Contributing
 
-Focused issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing a change. The roadmap is driven by Rootshell's requirements, and maintenance is provided on a best-effort basis without a support SLA.
+Focused issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing a change. The roadmap is driven by rootshell's requirements, and maintenance is provided on a best-effort basis without a support SLA.
 
 This fork does not accept automatic or incidental synchronization from upstream Citadel. See [MAINTAINING.md](MAINTAINING.md) for the upstream and release policies.
 
@@ -417,6 +417,6 @@ Do not report vulnerabilities in a public issue. Follow [SECURITY.md](SECURITY.m
 
 ## Acknowledgements and license
 
-Citadel was created by Joannis Orlandos and developed by its upstream contributors. This fork preserves their Git history and copyright attribution. Rootshell-specific changes were developed by Kit Knox and other contributors recorded in the repository history.
+Citadel was created by Joannis Orlandos and developed by its upstream contributors. This fork preserves their Git history and copyright attribution. rootshell-specific changes were developed by Kit Knox and other contributors recorded in the repository history.
 
 Citadel is distributed under the [MIT License](LICENSE). Additional notices for bundled third-party source are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
