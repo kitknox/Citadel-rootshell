@@ -33,12 +33,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "CCitadelBcrypt"),
-        .target(
-            name: "CSntrup761",
-            cSettings: [
-                .unsafeFlags(["-w"]),  // Suppress warnings in reference crypto code
-            ]
-        ),
+        .target(name: "CSntrup761"),
         // Bridges to the ML-DSA-44 already compiled inside swift-crypto's
         // CCryptoBoringSSL (whose umbrella header doesn't expose mldsa.h).
         .target(name: "CMLDSA44"),
