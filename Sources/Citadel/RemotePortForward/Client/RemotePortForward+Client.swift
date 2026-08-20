@@ -1,4 +1,5 @@
 import Foundation
+import NIOConcurrencyHelpers
 import NIOCore
 import NIOPosix
 import NIOSSH
@@ -183,7 +184,7 @@ extension SSHClient {
             "port": "\(port)"
         ])
 
-        let (newClients, continuation) = AsyncStream<NIOAsyncChannel<Inbound, Outbound>>.makeStream()
+        let (newClients, continuation) = AsyncStream<PendingChannel<Inbound, Outbound>>.makeStream()
 
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
@@ -196,14 +197,18 @@ extension SSHClient {
                         let channel = try NIOAsyncChannel<Inbound, Outbound>(
                             wrappingChannelSynchronously: channel
                         )
-                        continuation.yield(channel)
+                        // Ownership passes to the box, so a channel the stream
+                        // refuses - or buffers and never hands over - is still
+                        // abandoned when the box is released.
+                        continuation.yield(PendingChannel(channel))
                     }
                 }
             }
 
             group.addTask {
                 await withDiscardingTaskGroup { group in
-                    for await client in newClients {
+                    for await pending in newClients {
+                        guard let client = pending.claim() else { continue }
                         group.addTask {
                             do {
                                 try await onAccept(client)
@@ -212,6 +217,9 @@ extension SSHClient {
                                     "error": "\(error)"
                                 ])
                             }
+                            // Covers both the throw above and cancellation before
+                            // `onAccept` reached `executeThenClose`.
+                            client.abandon()
                         }
                     }
                 }
@@ -298,26 +306,89 @@ extension SSHClient {
                     return channel
                 }
                 .get()
-            
-            try await inboundClient.executeThenClose { inboundA, outboundA in
-                try await outboundClient.executeThenClose { inboundB, outboundB in
-                    try await withThrowingTaskGroup(of: Void.self) { group in
-                        group.addTask {
-                            for try await data in inboundA {
-                                try await outboundB.write(data)
-                            }
-                        }
-                        group.addTask {
-                            for try await data in inboundB {
-                                try await outboundA.write(data)
-                            }
-                        }
 
-                        defer { group.cancelAll() }
-                        try await group.next()
+            do {
+                try await inboundClient.executeThenClose { inboundA, outboundA in
+                    try await outboundClient.executeThenClose { inboundB, outboundB in
+                        try await withThrowingTaskGroup(of: Void.self) { group in
+                            group.addTask {
+                                for try await data in inboundA {
+                                    try await outboundB.write(data)
+                                }
+                            }
+                            group.addTask {
+                                for try await data in inboundB {
+                                    try await outboundA.write(data)
+                                }
+                            }
+
+                            defer { group.cancelAll() }
+                            try await group.next()
+                        }
                     }
                 }
+            } catch {
+                // Cancellation between the connect and `executeThenClose` leaves
+                // the local channel un-finished; its writer traps on deinit.
+                outboundClient.abandon()
+                throw error
             }
         }
+    }
+}
+
+/// Carries an accepted channel from the accept callback to whoever handles it, and
+/// abandons it if nobody ever does.
+///
+/// The channel travels through an `AsyncStream`, which can hold it in a buffer the
+/// consumer never drains - the forward is torn down, the stream is finished and its
+/// consumer cancelled, and buffered values are released wherever the storage dies.
+/// A released `NIOAsyncChannel` whose writer was never finished traps, so cleanup
+/// rides on the box's `deinit` rather than on any particular teardown path running.
+@usableFromInline
+final class PendingChannel<Inbound: Sendable, Outbound: Sendable>: Sendable {
+    @usableFromInline
+    let channel: NIOAsyncChannel<Inbound, Outbound>
+    private let isClaimed = NIOLockedValueBox(false)
+
+    @usableFromInline
+    init(_ channel: NIOAsyncChannel<Inbound, Outbound>) {
+        self.channel = channel
+    }
+
+    /// Takes ownership. Returns nil if someone already has it, so a channel is never
+    /// handled twice.
+    @usableFromInline
+    func claim() -> NIOAsyncChannel<Inbound, Outbound>? {
+        isClaimed.withLockedValue { claimed in
+            if claimed { return nil }
+            claimed = true
+            return channel
+        }
+    }
+
+    deinit {
+        if !isClaimed.withLockedValue({ $0 }) {
+            channel.abandon()
+        }
+    }
+}
+
+extension NIOAsyncChannel {
+    /// Abandons a channel nobody is going to consume.
+    ///
+    /// Releasing a `NIOAsyncChannel` without finishing its writer traps in
+    /// `NIOAsyncWriter.deinit`. `executeThenClose` would do it, but it also awaits
+    /// `closeFuture`, which an SSH child channel fails with `NIOSSHError.tcpShutdown`
+    /// whenever the connection is already gone - and NIO asserts on a failed
+    /// `closeFuture`. Finishing and closing directly is both the narrower operation
+    /// and the one that survives a dead connection. Idempotent, so it is safe on a
+    /// channel that `executeThenClose` already handled.
+    @usableFromInline
+    func abandon() {
+        // No non-deprecated accessor reaches the writer outside a scoped
+        // `executeThenClose`, which is exactly what we cannot use here.
+        outbound.finish()
+        channel.close(promise: nil)
     }
 }
