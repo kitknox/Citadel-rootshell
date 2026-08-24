@@ -24,6 +24,24 @@ enum SSHServerError: Error {
 }
 
 final class KeyTests: XCTestCase {
+    func testLegacyRSASignaturePolicy() {
+        XCTAssertTrue(SSHRSASignaturePolicy.shouldAttemptLegacySHA1(
+            serverSignatureAlgorithms: nil
+        ))
+        XCTAssertTrue(SSHRSASignaturePolicy.shouldAttemptLegacySHA1(
+            serverSignatureAlgorithms: ["ssh-rsa"]
+        ))
+        XCTAssertFalse(SSHRSASignaturePolicy.shouldAttemptLegacySHA1(
+            serverSignatureAlgorithms: ["rsa-sha2-256", "ssh-rsa"]
+        ))
+        XCTAssertFalse(SSHRSASignaturePolicy.shouldAttemptLegacySHA1(
+            serverSignatureAlgorithms: ["rsa-sha2-512"]
+        ))
+        XCTAssertFalse(SSHRSASignaturePolicy.shouldAttemptLegacySHA1(
+            serverSignatureAlgorithms: []
+        ))
+    }
+
     func testRSAPrivateKey() throws {
         let key = """
             -----BEGIN OPENSSH PRIVATE KEY-----
@@ -71,6 +89,126 @@ final class KeyTests: XCTestCase {
         
         let openSSHPrivateKey = try Insecure.RSA.PrivateKey(sshRsa: key)
         XCTAssertNotNil(openSSHPrivateKey)
+
+        let message = Data("RSA signature algorithm selection".utf8)
+        let publicKey = try XCTUnwrap(privateKey.publicKey as? Insecure.RSA.PublicKey)
+
+        let sha256Signature = try privateKey.signature(for: message, hashAlgorithm: .sha256)
+        XCTAssertTrue(publicKey.isValidSignature(sha256Signature, for: message))
+
+        let sha1Signature = try privateKey.sha1Signature(for: message)
+        XCTAssertTrue(publicKey.isValidSignature(sha1Signature, for: message))
+
+        let legacyKey = privateKey.legacySHA1Key
+        let legacyNIOSSHSignature = try legacyKey.signature(for: message)
+        var legacyWireSignature = ByteBuffer()
+        legacyWireSignature.writeSSHSignature(legacyNIOSSHSignature)
+        let algorithmLength = try XCTUnwrap(
+            legacyWireSignature.readInteger(as: UInt32.self)
+        )
+        let algorithmBytes = try XCTUnwrap(
+            legacyWireSignature.readBytes(length: Int(algorithmLength))
+        )
+        XCTAssertEqual(
+            String(decoding: algorithmBytes, as: UTF8.self),
+            Insecure.RSA.SHA1Signature.signaturePrefix
+        )
+
+        let authenticationWithoutAdvertisement = SSHAuthenticationMethod.rsa(
+            username: "test",
+            privateKey: privateKey
+        )
+        func nextAuthenticationKey(
+            from authentication: SSHAuthenticationMethod
+        ) throws -> NIOSSHPrivateKey {
+            let promise = MultiThreadedEventLoopGroup.singleton.next().makePromise(
+                of: NIOSSHUserAuthenticationOffer?.self
+            )
+            authentication.nextAuthenticationType(
+                availableMethods: .publicKey,
+                nextChallengePromise: promise
+            )
+            guard
+                let offer = try promise.futureResult.wait(),
+                case .privateKey(let privateKeyOffer) = offer.offer
+            else {
+                throw SSHClientError.allAuthenticationOptionsFailed
+            }
+            return privateKeyOffer.privateKey
+        }
+        func signatureAlgorithm(for key: NIOSSHPrivateKey) throws -> String {
+            var wireSignature = ByteBuffer()
+            wireSignature.writeSSHSignature(try key.signature(for: message))
+            let length = try XCTUnwrap(wireSignature.readInteger(as: UInt32.self))
+            let bytes = try XCTUnwrap(wireSignature.readBytes(length: Int(length)))
+            return String(decoding: bytes, as: UTF8.self)
+        }
+
+        XCTAssertEqual(
+            try signatureAlgorithm(for: nextAuthenticationKey(from: authenticationWithoutAdvertisement)),
+            Insecure.RSA.Signature.signaturePrefix
+        )
+        XCTAssertEqual(
+            try signatureAlgorithm(for: nextAuthenticationKey(from: authenticationWithoutAdvertisement)),
+            Insecure.RSA.SHA1Signature.signaturePrefix
+        )
+
+        let authenticationWithModernAdvertisement = SSHAuthenticationMethod.rsa(
+            username: "test",
+            privateKey: privateKey
+        )
+        authenticationWithModernAdvertisement.serverSignatureAlgorithmsReceived([
+            Insecure.RSA.Signature.signaturePrefix,
+            Insecure.RSA.SHA1Signature.signaturePrefix,
+        ])
+        XCTAssertEqual(
+            try signatureAlgorithm(for: nextAuthenticationKey(from: authenticationWithModernAdvertisement)),
+            Insecure.RSA.Signature.signaturePrefix
+        )
+        XCTAssertThrowsError(
+            try nextAuthenticationKey(from: authenticationWithModernAdvertisement)
+        )
+
+        let authenticationWithLegacyOnlyAdvertisement = SSHAuthenticationMethod.rsa(
+            username: "test",
+            privateKey: privateKey
+        )
+        authenticationWithLegacyOnlyAdvertisement.serverSignatureAlgorithmsReceived([
+            Insecure.RSA.SHA1Signature.signaturePrefix
+        ])
+        XCTAssertEqual(
+            try signatureAlgorithm(for: nextAuthenticationKey(from: authenticationWithLegacyOnlyAdvertisement)),
+            Insecure.RSA.Signature.signaturePrefix
+        )
+        XCTAssertEqual(
+            try signatureAlgorithm(for: nextAuthenticationKey(from: authenticationWithLegacyOnlyAdvertisement)),
+            Insecure.RSA.SHA1Signature.signaturePrefix
+        )
+
+        XCTAssertFalse(
+            publicKey.isValidSignature(
+                Insecure.RSA.SHA1Signature(rawRepresentation: sha256Signature.rawRepresentation),
+                for: message
+            )
+        )
+        XCTAssertFalse(
+            publicKey.isValidSignature(
+                Insecure.RSA.Signature(rawRepresentation: sha1Signature.rawRepresentation),
+                for: message
+            )
+        )
+        XCTAssertFalse(
+            publicKey.isValidSignature(sha256Signature, for: Data("wrong message".utf8))
+        )
+
+        var tampered = sha1Signature.rawRepresentation
+        tampered[tampered.startIndex] ^= 0xff
+        XCTAssertFalse(
+            publicKey.isValidSignature(
+                Insecure.RSA.SHA1Signature(rawRepresentation: tampered),
+                for: message
+            )
+        )
     }
     
     func testEncryptedED25519PrivateKey() throws {

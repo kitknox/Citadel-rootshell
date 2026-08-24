@@ -11,6 +11,27 @@ extension Insecure {
 }
 
 extension Insecure.RSA {
+    private enum VerificationHashAlgorithm {
+        case sha1
+        case sha256
+
+        var nid: Int32 {
+            switch self {
+            case .sha1: return NID_sha1
+            case .sha256: return NID_sha256
+            }
+        }
+
+        func digest<D: DataProtocol>(for data: D) -> [UInt8] {
+            switch self {
+            case .sha1:
+                return Array(Insecure.SHA1.hash(data: data))
+            case .sha256:
+                return Array(SHA256.hash(data: data))
+            }
+        }
+    }
+
     public final class PublicKey: NIOSSHPublicKeyProtocol {
         public static let publicKeyPrefix = "ssh-rsa"
         public static var authAlgorithmName: String { "rsa-sha2-256" }
@@ -118,7 +139,27 @@ extension Insecure.RSA {
             return Data(bytes: out, count: Int(written))
         }
         
-        public func isValidSignature<D: DataProtocol>(_ signature: Signature, for digest: D) -> Bool {
+        public func isValidSignature<D: DataProtocol>(_ signature: Signature, for data: D) -> Bool {
+            isValidSignature(
+                signature.rawRepresentation,
+                for: data,
+                hashAlgorithm: .sha256
+            )
+        }
+
+        public func isValidSignature<D: DataProtocol>(_ signature: SHA1Signature, for data: D) -> Bool {
+            isValidSignature(
+                signature.rawRepresentation,
+                for: data,
+                hashAlgorithm: .sha1
+            )
+        }
+
+        private func isValidSignature<D: DataProtocol>(
+            _ signature: Data,
+            for data: D,
+            hashAlgorithm: VerificationHashAlgorithm
+        ) -> Bool {
             let context = CCryptoBoringSSL_RSA_new()
             defer { CCryptoBoringSSL_RSA_free(context) }
 
@@ -136,16 +177,13 @@ extension Insecure.RSA {
             ) == 1 else {
                 return false
             }
-            
-            var clientSignature = [UInt8](repeating: 0, count: 20)
-            let digest = Array(digest)
-            CCryptoBoringSSL_SHA1(digest, digest.count, &clientSignature)
-            
-            let signature = Array(signature.rawRepresentation)
+
+            let digest = hashAlgorithm.digest(for: data)
+            let signature = Array(signature)
             return CCryptoBoringSSL_RSA_verify(
-                NID_sha1,
-                clientSignature,
-                20,
+                hashAlgorithm.nid,
+                digest,
+                digest.count,
                 signature,
                 signature.count,
                 context
@@ -153,11 +191,14 @@ extension Insecure.RSA {
         }
         
         public func isValidSignature<D>(_ signature: NIOSSHSignatureProtocol, for data: D) -> Bool where D : DataProtocol {
-            guard let signature = signature as? Signature else {
+            switch signature {
+            case let signature as Signature:
+                return isValidSignature(signature, for: data)
+            case let signature as SHA1Signature:
+                return isValidSignature(signature, for: data)
+            default:
                 return false
             }
-            
-            return isValidSignature(signature, for: data)
         }
         
         public func write(to buffer: inout ByteBuffer) -> Int {
@@ -224,36 +265,68 @@ extension Insecure.RSA {
         }
     }
     
-    public struct Signature: ContiguousBytes, NIOSSHSignatureProtocol {
-        public static let signaturePrefix = "rsa-sha2-256"  // Modern signature algorithm (not deprecated ssh-rsa)
+    public protocol SignatureAlgorithmIdentifier {
+        static var name: String { get }
+    }
+
+    public enum SHA256SignatureAlgorithm: SignatureAlgorithmIdentifier {
+        public static let name = "rsa-sha2-256"
+    }
+
+    public enum SHA1SignatureAlgorithm: SignatureAlgorithmIdentifier {
+        public static let name = "ssh-rsa"
+    }
+
+    /// SSH wire representation shared by every RSA signature algorithm.
+    public struct RSASignature<Algorithm: SignatureAlgorithmIdentifier>:
+        ContiguousBytes,
+        NIOSSHSignatureProtocol
+    {
+        public static var signaturePrefix: String { Algorithm.name }
 
         public let rawRepresentation: Data
 
-        public init<D>(rawRepresentation: D) where D : DataProtocol {
+        public init<D>(rawRepresentation: D) where D: DataProtocol {
             self.rawRepresentation = Data(rawRepresentation)
         }
 
-        public func withUnsafeBytes<R>(_ body: (UnsafeRawBufferPointer) throws -> R) rethrows -> R {
+        public func withUnsafeBytes<R>(
+            _ body: (UnsafeRawBufferPointer) throws -> R
+        ) rethrows -> R {
             try rawRepresentation.withUnsafeBytes(body)
         }
 
         public func write(to buffer: inout ByteBuffer) -> Int {
-            // For SSH-RSA, the key format is the signature without lengths or paddings
-            return buffer.writeSSHString(rawRepresentation)
+            buffer.writeSSHString(rawRepresentation)
         }
-        
-        public static func read(from buffer: inout ByteBuffer) throws -> Signature {
+
+        public static func read(from buffer: inout ByteBuffer) throws -> Self {
             guard let buffer = buffer.readSSHBuffer() else {
                 throw RSAError(message: "Invalid signature format")
             }
-            
-            return Signature(rawRepresentation: buffer.getData(at: 0, length: buffer.readableBytes)!)
+
+            return Self(
+                rawRepresentation: buffer.getData(
+                    at: 0,
+                    length: buffer.readableBytes
+                )!
+            )
         }
     }
+
+    /// RSA/SHA-256 signature used by modern SSH peers.
+    public typealias Signature = RSASignature<SHA256SignatureAlgorithm>
+
+    /// Legacy RSA/SHA-1 signature used when `ssh-rsa` is negotiated for a host
+    /// key or selected by the user-authentication compatibility policy.
+    public typealias SHA1Signature = RSASignature<SHA1SignatureAlgorithm>
     
     public final class PrivateKey: NIOSSHPrivateKeyProtocol {
         public static let keyPrefix = "ssh-rsa"
         public static var authAlgorithmName: String { "rsa-sha2-256" }
+        public static var hostKeyAlgorithms: [String] {
+            [Signature.signaturePrefix, SHA1Signature.signaturePrefix]
+        }
 
         // Private Exponent
         internal let privateExponent: UnsafeMutablePointer<BIGNUM>
@@ -397,6 +470,39 @@ extension Insecure.RSA {
         
         public func signature<D>(for data: D) throws -> NIOSSHSignatureProtocol where D : DataProtocol {
             return try self.signature(for: data) as Signature
+        }
+
+        public func signature<D: DataProtocol>(
+            for data: D,
+            authenticationAlgorithmName: String
+        ) throws -> NIOSSHSignatureProtocol {
+            switch authenticationAlgorithmName {
+            case Signature.signaturePrefix:
+                return try self.signature(for: data) as Signature
+            case SHA1Signature.signaturePrefix:
+                return try self.sha1Signature(for: data)
+            default:
+                throw RSAError(message: "Unsupported RSA signature algorithm: \(authenticationAlgorithmName)")
+            }
+        }
+
+        /// Creates a legacy RSA/SHA-1 SSH signature.
+        ///
+        /// This must only be used for a user-auth attempt whose algorithm name
+        /// is explicitly `ssh-rsa`.
+        public func sha1Signature<D: DataProtocol>(for data: D) throws -> SHA1Signature {
+            let digest = Data(Insecure.SHA1.hash(data: data))
+            let signature = try self.signature(
+                forPrecomputedDigest: digest,
+                hashAlgorithm: .sha1
+            )
+            return SHA1Signature(rawRepresentation: signature.rawRepresentation)
+        }
+
+        /// A NIOSSH key view that names and signs the next authentication
+        /// attempt as legacy `ssh-rsa`.
+        public var legacySHA1Key: NIOSSHPrivateKey {
+            NIOSSHPrivateKey(custom: LegacySHA1PrivateKey(backing: self))
         }
 
         /// Hash algorithm tag for a precomputed-digest RSA signature.
@@ -602,6 +708,55 @@ extension Insecure.RSA {
             array.reserveCapacity(Int(CCryptoBoringSSL_BN_num_bytes(secret)))
             CCryptoBoringSSL_BN_bn2bin(secret, &array)
             return Data(array)
+        }
+    }
+
+    private final class LegacySHA1PublicKey: NIOSSHPublicKeyProtocol {
+        static let publicKeyPrefix = "ssh-rsa"
+        static let authAlgorithmName = "ssh-rsa"
+
+        private let backing: PublicKey
+
+        var rawRepresentation: Data { backing.rawRepresentation }
+
+        init(backing: PublicKey) {
+            self.backing = backing
+        }
+
+        func isValidSignature<D: DataProtocol>(
+            _ signature: NIOSSHSignatureProtocol,
+            for data: D
+        ) -> Bool {
+            backing.isValidSignature(signature, for: data)
+        }
+
+        func write(to buffer: inout ByteBuffer) -> Int {
+            backing.write(to: &buffer)
+        }
+
+        static func read(from buffer: inout ByteBuffer) throws -> LegacySHA1PublicKey {
+            LegacySHA1PublicKey(backing: try PublicKey.read(from: &buffer))
+        }
+    }
+
+    private final class LegacySHA1PrivateKey: NIOSSHPrivateKeyProtocol {
+        static let keyPrefix = "ssh-rsa"
+        static let authAlgorithmName = "ssh-rsa"
+
+        private let backing: PrivateKey
+
+        var publicKey: NIOSSHPublicKeyProtocol {
+            LegacySHA1PublicKey(backing: backing._publicKey)
+        }
+
+        init(backing: PrivateKey) {
+            self.backing = backing
+        }
+
+        func signature<D: DataProtocol>(
+            for data: D
+        ) throws -> NIOSSHSignatureProtocol {
+            try backing.sha1Signature(for: data)
         }
     }
 }

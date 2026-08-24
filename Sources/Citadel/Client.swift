@@ -57,17 +57,48 @@ extension SSHAlgorithms.Modification<NIOSSHKeyExchangeAlgorithmProtocol.Type> {
 
 extension SSHAlgorithms.Modification<(NIOSSHPublicKeyProtocol.Type, NIOSSHSignatureProtocol.Type)>{
     func register() {
+        let values: [(NIOSSHPublicKeyProtocol.Type, NIOSSHSignatureProtocol.Type)]
         switch self {
         case .add(let algorithms), .prepend(let algorithms):
-            for (publicKey, signature) in algorithms {
-                NIOSSHAlgorithms.register(publicKey: publicKey, signature: signature)
-            }
+            values = algorithms
         case .replace(with: let algorithms):
-            for (publicKey, signature) in algorithms {
-                NIOSSHAlgorithms.register(publicKey: publicKey, signature: signature)
-            }
+            values = algorithms
+        }
+
+        for registration in groupedPublicKeyAlgorithms(values) {
+            NIOSSHAlgorithms.register(
+                publicKey: registration.publicKey,
+                signatures: registration.signatures
+            )
         }
     }
+}
+
+private func groupedPublicKeyAlgorithms(
+    _ algorithms: [(NIOSSHPublicKeyProtocol.Type, NIOSSHSignatureProtocol.Type)]
+) -> [(
+    publicKey: NIOSSHPublicKeyProtocol.Type,
+    signatures: [NIOSSHSignatureProtocol.Type]
+)] {
+    var result: [(
+        publicKey: NIOSSHPublicKeyProtocol.Type,
+        signatures: [NIOSSHSignatureProtocol.Type]
+    )] = []
+
+    for (publicKey, signature) in algorithms {
+        if let index = result.firstIndex(where: {
+            ObjectIdentifier($0.publicKey) == ObjectIdentifier(publicKey)
+        }) {
+            if !result[index].signatures.contains(where: {
+                ObjectIdentifier($0) == ObjectIdentifier(signature)
+            }) {
+                result[index].signatures.append(signature)
+            }
+        } else {
+            result.append((publicKey: publicKey, signatures: [signature]))
+        }
+    }
+    return result
 }
 
 public struct SSHAlgorithms: Sendable {
@@ -109,12 +140,7 @@ public struct SSHAlgorithms: Sendable {
         }
         transportProtectionSchemes?.apply(to: &clientConfiguration.transportProtectionSchemes)
         keyExchangeAlgorithms?.apply(to: &clientConfiguration.keyExchangeAlgorithms)
-        if let preferred = preferredPublicKeyAlgorithms {
-            for (publicKey, signature) in preferred {
-                NIOSSHAlgorithms.registerPreferred(publicKey: publicKey, signature: signature)
-            }
-        }
-        publicKeyAlgorihtms?.register()
+        registerPublicKeyAlgorithms()
     }
 
     func apply(to serverConfiguration: inout SSHServerConfiguration) {
@@ -126,9 +152,21 @@ public struct SSHAlgorithms: Sendable {
         }
         transportProtectionSchemes?.apply(to: &serverConfiguration.transportProtectionSchemes)
         keyExchangeAlgorithms?.apply(to: &serverConfiguration.keyExchangeAlgorithms)
-        if let preferred = preferredPublicKeyAlgorithms {
-            for (publicKey, signature) in preferred {
-                NIOSSHAlgorithms.registerPreferred(publicKey: publicKey, signature: signature)
+        registerPublicKeyAlgorithms()
+    }
+
+    /// Registers the default/custom public-key parsers and their associated
+    /// signature parsers without applying transport configuration.
+    ///
+    /// Apps that need to parse keys before connecting can call this same
+    /// source of truth used by ``apply(to:)``.
+    public func registerPublicKeyAlgorithms() {
+        if let preferredPublicKeyAlgorithms {
+            for registration in groupedPublicKeyAlgorithms(preferredPublicKeyAlgorithms) {
+                NIOSSHAlgorithms.registerPreferred(
+                    publicKey: registration.publicKey,
+                    signatures: registration.signatures
+                )
             }
         }
         publicKeyAlgorihtms?.register()
@@ -176,6 +214,7 @@ public struct SSHAlgorithms: Sendable {
         // RSA appended after NIOSSH built-in ed25519/ecdsa
         algorithms.publicKeyAlgorihtms = .add([
             (Insecure.RSA.PublicKey.self, Insecure.RSA.Signature.self),
+            (Insecure.RSA.PublicKey.self, Insecure.RSA.SHA1Signature.self),
         ])
 
         // Classical DH appended after NIOSSH defaults (fallback for AWS etc.)

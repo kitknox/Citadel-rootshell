@@ -2,21 +2,74 @@ import NIOCore
 import NIOSSH
 import Crypto
 
+/// Selects the RSA/SHA-1 compatibility attempt using the same semantics as
+/// OpenSSH's `server-sig-algs` handling.
+public enum SSHRSASignaturePolicy {
+    /// Returns whether an `ssh-rsa` user-authentication attempt is useful.
+    ///
+    /// An absent RFC 8308 advertisement identifies a legacy or affected peer,
+    /// so the base RSA algorithm remains eligible. An explicit list is
+    /// authoritative, and advertising RSA/SHA-2 makes a retry after rejection
+    /// redundant because the server already considered the modern key offer.
+    public static func shouldAttemptLegacySHA1(
+        serverSignatureAlgorithms: Set<String>?
+    ) -> Bool {
+        guard let serverSignatureAlgorithms else {
+            return true
+        }
+        return serverSignatureAlgorithms.contains(Insecure.RSA.SHA1Signature.signaturePrefix)
+            && !serverSignatureAlgorithms.contains(Insecure.RSA.Signature.signaturePrefix)
+    }
+}
+
 /// Represents an authentication method.
 public final class SSHAuthenticationMethod: NIOSSHClientUserAuthenticationDelegate {
     private enum Implementation {
         case custom(NIOSSHClientUserAuthenticationDelegate)
-        case user(String, offer: NIOSSHUserAuthenticationOffer.Offer)
+        case user(
+            String,
+            offer: NIOSSHUserAuthenticationOffer.Offer,
+            requiredServerSignatureAlgorithm: String?
+        )
     }
     
     private let allImplementations: [Implementation]
     private var implementations: [Implementation]
+    private var serverSignatureAlgorithms: Set<String>?
+
+    private func permits(requiredServerSignatureAlgorithm algorithm: String) -> Bool {
+        if algorithm == Insecure.RSA.SHA1Signature.signaturePrefix {
+            return SSHRSASignaturePolicy.shouldAttemptLegacySHA1(
+                serverSignatureAlgorithms: serverSignatureAlgorithms
+            )
+        }
+        return serverSignatureAlgorithms?.contains(algorithm) == true
+    }
     
     internal init(
         username: String,
         offer: NIOSSHUserAuthenticationOffer.Offer
     ) {
-        self.allImplementations = [.user(username, offer: offer)]
+        self.allImplementations = [
+            .user(username, offer: offer, requiredServerSignatureAlgorithm: nil),
+        ]
+        self.implementations = allImplementations
+    }
+
+    internal init(
+        username: String,
+        offers: [(
+            offer: NIOSSHUserAuthenticationOffer.Offer,
+            requiredServerSignatureAlgorithm: String?
+        )]
+    ) {
+        self.allImplementations = offers.map {
+            .user(
+                username,
+                offer: $0.offer,
+                requiredServerSignatureAlgorithm: $0.requiredServerSignatureAlgorithm
+            )
+        }
         self.implementations = allImplementations
     }
     
@@ -40,7 +93,19 @@ public final class SSHAuthenticationMethod: NIOSSHClientUserAuthenticationDelega
     /// - username: The username to authenticate with.
     /// - privateKey: The private key to authenticate with.
     public static func rsa(username: String, privateKey: Insecure.RSA.PrivateKey) -> SSHAuthenticationMethod {
-        return SSHAuthenticationMethod(username: username, offer: .privateKey(.init(privateKey: .init(custom: privateKey))))
+        SSHAuthenticationMethod(
+            username: username,
+            offers: [
+                (
+                    offer: .privateKey(.init(privateKey: .init(custom: privateKey))),
+                    requiredServerSignatureAlgorithm: nil
+                ),
+                (
+                    offer: .privateKey(.init(privateKey: privateKey.legacySHA1Key)),
+                    requiredServerSignatureAlgorithm: "ssh-rsa"
+                ),
+            ]
+        )
     }
     
     /// Creates a public key based authentication method.
@@ -103,6 +168,12 @@ public final class SSHAuthenticationMethod: NIOSSHClientUserAuthenticationDelega
         availableMethods: NIOSSHAvailableUserAuthenticationMethods,
         nextChallengePromise: EventLoopPromise<NIOSSHUserAuthenticationOffer?>
     ) {
+        while case .user(_, _, let requiredAlgorithm)? = implementations.first,
+              let requiredAlgorithm,
+              !permits(requiredServerSignatureAlgorithm: requiredAlgorithm) {
+            _ = implementations.removeFirst()
+        }
+
         if implementations.isEmpty {
             nextChallengePromise.fail(SSHClientError.allAuthenticationOptionsFailed)
             return
@@ -112,7 +183,7 @@ public final class SSHAuthenticationMethod: NIOSSHClientUserAuthenticationDelega
         let implementation = implementations.first!
 
         switch implementation {
-        case .user(let username, offer: let offer):
+        case .user(let username, offer: let offer, requiredServerSignatureAlgorithm: _):
             // For user-based auth, remove from array (single attempt per offer)
             _ = implementations.removeFirst()
 
@@ -169,6 +240,15 @@ public final class SSHAuthenticationMethod: NIOSSHClientUserAuthenticationDelega
             }
 
             customDelegate.nextAuthenticationType(availableMethods: availableMethods, nextChallengePromise: wrapperPromise)
+        }
+    }
+
+    public func serverSignatureAlgorithmsReceived(_ algorithms: [String]) {
+        self.serverSignatureAlgorithms = Set(algorithms)
+        for implementation in allImplementations {
+            if case .custom(let delegate) = implementation {
+                delegate.serverSignatureAlgorithmsReceived(algorithms)
+            }
         }
     }
 

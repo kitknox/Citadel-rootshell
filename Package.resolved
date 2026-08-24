@@ -77,8 +77,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kitknox/swift-nio-ssh-rootshell.git",
       "state" : {
-        "revision" : "7a3234cad25ddc09618ffea413c61912a6b26c7a",
-        "version" : "0.1.0"
+        "revision" : "0ed799156bbfa188ceb20f61ec446f2f9093aba0",
+        "version" : "0.1.1"
       }
     },
     {
