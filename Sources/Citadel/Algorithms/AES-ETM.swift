@@ -250,25 +250,20 @@ public final class AES128CTR_ETM: NIOSSHTransportProtection {
 
         let payloadBytes = outboundBuffer.writeEncryptablePayload(packet)
 
-        // Padding: (4 + 1 + payload + padding) must be a multiple of block size.
-        let headerLength = packetLengthLength + packetPaddingLength
-        let contentWithoutPadding = headerLength + payloadBytes
+        // ETM aligns only the encrypted body. The four-byte packet length
+        // stays cleartext and is excluded from the block-size calculation.
+        let contentWithoutPadding = packetPaddingLength + payloadBytes
         var paddingLength = Self.cipherBlockSize - (contentWithoutPadding % Self.cipherBlockSize)
         if paddingLength < 4 {
             paddingLength += Self.cipherBlockSize
-        }
-
-        // Ensure minimum packet size (16 bytes including the length field)
-        if headerLength + payloadBytes + paddingLength < Self.cipherBlockSize {
-            paddingLength = Self.cipherBlockSize - headerLength - payloadBytes
         }
 
         outboundBuffer.writeSSHPaddingBytes(count: paddingLength)
 
         // packet_length = padding_length_byte + payload + padding
         let packetLength = packetPaddingLength + payloadBytes + paddingLength
-        precondition((packetLength + packetLengthLength) % Self.cipherBlockSize == 0,
-                     "ETM packet not block-aligned; got \(packetLength + packetLengthLength)")
+        precondition(packetLength % Self.cipherBlockSize == 0,
+                     "ETM encrypted body not block-aligned; got \(packetLength)")
 
         outboundBuffer.setInteger(UInt32(packetLength), at: packetLengthIndex)
         outboundBuffer.setInteger(UInt8(paddingLength), at: packetLengthIndex + packetLengthLength)
@@ -557,25 +552,20 @@ public final class AES256CTR_ETM: NIOSSHTransportProtection {
 
         let payloadBytes = outboundBuffer.writeEncryptablePayload(packet)
 
-        // Padding: (4 + 1 + payload + padding) must be a multiple of block size.
-        let headerLength = packetLengthLength + packetPaddingLength
-        let contentWithoutPadding = headerLength + payloadBytes
+        // ETM aligns only the encrypted body. The four-byte packet length
+        // stays cleartext and is excluded from the block-size calculation.
+        let contentWithoutPadding = packetPaddingLength + payloadBytes
         var paddingLength = Self.cipherBlockSize - (contentWithoutPadding % Self.cipherBlockSize)
         if paddingLength < 4 {
             paddingLength += Self.cipherBlockSize
-        }
-
-        // Ensure minimum packet size (16 bytes including the length field)
-        if headerLength + payloadBytes + paddingLength < Self.cipherBlockSize {
-            paddingLength = Self.cipherBlockSize - headerLength - payloadBytes
         }
 
         outboundBuffer.writeSSHPaddingBytes(count: paddingLength)
 
         // packet_length = padding_length_byte + payload + padding
         let packetLength = packetPaddingLength + payloadBytes + paddingLength
-        precondition((packetLength + packetLengthLength) % Self.cipherBlockSize == 0,
-                     "ETM packet not block-aligned; got \(packetLength + packetLengthLength)")
+        precondition(packetLength % Self.cipherBlockSize == 0,
+                     "ETM encrypted body not block-aligned; got \(packetLength)")
 
         outboundBuffer.setInteger(UInt32(packetLength), at: packetLengthIndex)
         outboundBuffer.setInteger(UInt8(paddingLength), at: packetLengthIndex + packetLengthLength)

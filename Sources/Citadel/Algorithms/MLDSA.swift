@@ -23,6 +23,7 @@ public enum MLDSA65SSH {
 
     public struct PublicKey: NIOSSHPublicKeyProtocol {
         public static let publicKeyPrefix = "ssh-mldsa65"
+        public static var defaultHostKeyAlgorithms: [String]? { [] }
 
         private let backing: CryptoKit.MLDSA65.PublicKey
 
@@ -125,6 +126,7 @@ public enum MLDSA87SSH {
 
     public struct PublicKey: NIOSSHPublicKeyProtocol {
         public static let publicKeyPrefix = "ssh-mldsa87"
+        public static var defaultHostKeyAlgorithms: [String]? { [] }
 
         private let backing: CryptoKit.MLDSA87.PublicKey
 

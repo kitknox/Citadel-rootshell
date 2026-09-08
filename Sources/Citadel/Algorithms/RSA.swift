@@ -34,6 +34,7 @@ extension Insecure.RSA {
 
     public final class PublicKey: NIOSSHPublicKeyProtocol {
         public static let publicKeyPrefix = "ssh-rsa"
+        public static var defaultHostKeyAlgorithms: [String]? { ["rsa-sha2-256"] }
         public static var authAlgorithmName: String { "rsa-sha2-256" }
         public static let keyExchangeAlgorithms = ["diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1"]
 

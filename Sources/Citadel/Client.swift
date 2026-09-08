@@ -184,38 +184,26 @@ public struct SSHAlgorithms: Sendable {
             AES128CTR.self
         ])
 
-        // PQ hybrid key exchange + PQ host key algorithms
-        // sntrup761 works on all iOS versions (pure C); MLKem requires iOS 26+
+        // Match OpenSSH: PQ KEX first, classical host signatures first. The
+        // canonical hybrid follows RSA; experimental formats remain parsable.
+        algorithms.preferredKeyExchangeAlgorithms = [Sntrup761X25519Sha512.self]
         if #available(iOS 26, macOS 26, macCatalyst 26, visionOS 26, *) {
-            algorithms.preferredKeyExchangeAlgorithms = [
-                MLKem768X25519Sha256.self,        // IETF standard track, highest priority
-                Sntrup761X25519Sha512.self,        // OpenSSH default since 8.9, wide compat
-            ]
-            algorithms.preferredPublicKeyAlgorithms = [
-                (MLDSA65SSH.PublicKey.self, MLDSA65SSH.Signature.self),
-                (MLDSA87SSH.PublicKey.self, MLDSA87SSH.Signature.self),
-                (MLDSA44Ed25519SSH.PublicKey.self, MLDSA44Ed25519SSH.Signature.self),
-            ]
-        } else {
-            // Pre-iOS 26: sntrup761 is the only PQ option available
-            algorithms.preferredKeyExchangeAlgorithms = [
-                Sntrup761X25519Sha512.self,
-            ]
-            // BoringSSL-backed, so available regardless of OS version
-            algorithms.preferredPublicKeyAlgorithms = [
-                (MLDSA44Ed25519SSH.PublicKey.self, MLDSA44Ed25519SSH.Signature.self),
-            ]
+            algorithms.preferredKeyExchangeAlgorithms?.insert(MLKem768X25519Sha256.self, at: 0)
         }
-        // Pure ML-DSA-44 (BoringSSL-backed, no gate) — appended in both branches
-        algorithms.preferredPublicKeyAlgorithms?.append(
-            (MLDSA44SSH.PublicKey.self, MLDSA44SSH.Signature.self)
-        )
-
-        // RSA appended after NIOSSH built-in ed25519/ecdsa
-        algorithms.publicKeyAlgorihtms = .add([
+        var publicKeys: [(NIOSSHPublicKeyProtocol.Type, NIOSSHSignatureProtocol.Type)] = [
             (Insecure.RSA.PublicKey.self, Insecure.RSA.Signature.self),
             (Insecure.RSA.PublicKey.self, Insecure.RSA.SHA1Signature.self),
-        ])
+            (MLDSA44Ed25519SSH.PublicKey.self, MLDSA44Ed25519SSH.Signature.self),
+            (LegacyMLDSA44Ed25519SSH.PublicKey.self, LegacyMLDSA44Ed25519SSH.Signature.self),
+            (MLDSA44SSH.PublicKey.self, MLDSA44SSH.Signature.self),
+        ]
+        if #available(iOS 26, macOS 26, macCatalyst 26, visionOS 26, *) {
+            publicKeys += [
+                (MLDSA65SSH.PublicKey.self, MLDSA65SSH.Signature.self),
+                (MLDSA87SSH.PublicKey.self, MLDSA87SSH.Signature.self),
+            ]
+        }
+        algorithms.publicKeyAlgorihtms = .add(publicKeys)
 
         // Classical DH appended after NIOSSH defaults (fallback for AWS etc.)
         algorithms.keyExchangeAlgorithms = .add([

@@ -4,7 +4,7 @@ import NIOSSH
 import Crypto
 import CMLDSA44
 
-/// Hybrid post-quantum user/host key algorithm: ssh-mldsa44-ed25519@openssh.com
+/// Hybrid post-quantum user/host key algorithm: ssh-mldsa44-ed25519
 ///
 /// Implements the composite ML-DSA-44 + Ed25519 signature scheme added in
 /// OpenSSH 10.4 (draft-miller-sshm-mldsa44-ed25519-composite-sigs-00, built on
@@ -21,26 +21,49 @@ import CMLDSA44
 /// Ed25519 seed); the expanded ML-DSA key is re-derived on every signing
 /// operation, matching OpenSSH. ML-DSA-44 comes from the BoringSSL vendored in
 /// swift-crypto — no OS availability gate needed.
-public enum MLDSA44Ed25519SSH {
+/// Canonical OpenSSH hybrid format. Existing vendored keys must retain their
+/// original wire identity; use `LegacyMLDSA44Ed25519SSH` to read/use those keys.
+public typealias MLDSA44Ed25519SSH = MLDSA44Ed25519Algorithm<MLDSA44Ed25519Format>
+public typealias LegacyMLDSA44Ed25519SSH = MLDSA44Ed25519Algorithm<LegacyMLDSA44Ed25519Format>
 
+public protocol MLDSA44Ed25519WireFormat {
+    static var algorithmName: String { get }
+    static var certifiedAlgorithmName: String { get }
+    static var advertisedByDefault: Bool { get }
+}
+
+public enum MLDSA44Ed25519Format: MLDSA44Ed25519WireFormat {
+    public static let algorithmName = "ssh-mldsa44-ed25519"
+    public static let certifiedAlgorithmName = "ssh-mldsa44-ed25519-cert"
+    public static let advertisedByDefault = true
+}
+
+public enum LegacyMLDSA44Ed25519Format: MLDSA44Ed25519WireFormat {
     public static let algorithmName = "ssh-mldsa44-ed25519@openssh.com"
     public static let certifiedAlgorithmName = "ssh-mldsa44-ed25519-cert-v01@openssh.com"
+    public static let advertisedByDefault = false
+}
 
-    static let mldsaPublicKeyLength = 1312
-    static let mldsaSignatureLength = 2420
-    static let mldsaSeedLength = 32
-    static let ed25519PublicKeyLength = 32
-    static let ed25519SignatureLength = 64
-    static let ed25519SeedLength = 32
-    static let publicKeyLength = mldsaPublicKeyLength + ed25519PublicKeyLength    // 1344
-    static let signatureLength = mldsaSignatureLength + ed25519SignatureLength    // 2484
-    static let seedRepresentationLength = mldsaSeedLength + ed25519SeedLength     // 64
+public enum MLDSA44Ed25519Algorithm<Format: MLDSA44Ed25519WireFormat> {
+
+    public static var algorithmName: String { Format.algorithmName }
+    public static var certifiedAlgorithmName: String { Format.certifiedAlgorithmName }
+
+    static var mldsaPublicKeyLength: Int { 1312 }
+    static var mldsaSignatureLength: Int { 2420 }
+    static var mldsaSeedLength: Int { 32 }
+    static var ed25519PublicKeyLength: Int { 32 }
+    static var ed25519SignatureLength: Int { 64 }
+    static var ed25519SeedLength: Int { 32 }
+    static var publicKeyLength: Int { mldsaPublicKeyLength + ed25519PublicKeyLength } // 1344
+    static var signatureLength: Int { mldsaSignatureLength + ed25519SignatureLength } // 2484
+    static var seedRepresentationLength: Int { mldsaSeedLength + ed25519SeedLength } // 64
 
     /// Fixed 32-byte domain separator prepended to every composite message.
-    static let compositeDomain = Data("CompositeAlgorithmSignatures2025".utf8)
+    static var compositeDomain: Data { Data("CompositeAlgorithmSignatures2025".utf8) }
     /// Algorithm label: second component of M' and the FIPS 204 context for the
     /// ML-DSA half.
-    static let compositeLabel = Data("COMPSIG-MLDSA44-Ed25519-SHA512".utf8)
+    static var compositeLabel: Data { Data("COMPSIG-MLDSA44-Ed25519-SHA512".utf8) }
 
     /// M' = domain || label || uint8(ctxlen) || ctx || SHA-512(message).
     /// SSH always signs with an empty application context (M' = 127 bytes);
@@ -63,14 +86,19 @@ public enum MLDSA44Ed25519SSH {
     // MARK: - Public key
 
     public struct PublicKey: NIOSSHPublicKeyProtocol, Sendable {
-        public static let publicKeyPrefix = MLDSA44Ed25519SSH.algorithmName
-        public static let certifiedKeyPrefix: String? = MLDSA44Ed25519SSH.certifiedAlgorithmName
+        public static var publicKeyPrefix: String { MLDSA44Ed25519Algorithm<Format>.algorithmName }
+        public static var certifiedKeyPrefix: String? { MLDSA44Ed25519Algorithm<Format>.certifiedAlgorithmName }
+
+        public static var defaultHostKeyAlgorithms: [String]? {
+            Format.advertisedByDefault ? [Format.algorithmName] : []
+        }
+        public static var supportsHostCertificates: Bool { true }
 
         /// mldsaPK(1312) || ed25519PK(32)
         public let rawRepresentation: Data
 
         public init(rawRepresentation: Data) throws {
-            guard rawRepresentation.count == MLDSA44Ed25519SSH.publicKeyLength else {
+            guard rawRepresentation.count == MLDSA44Ed25519Algorithm<Format>.publicKeyLength else {
                 throw MLDSAError(message: "Invalid ML-DSA-44+Ed25519 public key length \(rawRepresentation.count)")
             }
             self.rawRepresentation = Data(rawRepresentation)
@@ -86,16 +114,16 @@ public enum MLDSA44Ed25519SSH {
         /// Context-capable core used by the public path (empty context) and the
         /// draft's KAT vectors (non-empty context).
         func isValidCompositeSignature<D: DataProtocol>(_ signature: Data, for data: D, context: Data) -> Bool {
-            guard signature.count == MLDSA44Ed25519SSH.signatureLength else {
+            guard signature.count == MLDSA44Ed25519Algorithm<Format>.signatureLength else {
                 return false
             }
-            let mPrime = MLDSA44Ed25519SSH.compositeMessage(for: data, context: context)
+            let mPrime = MLDSA44Ed25519Algorithm<Format>.compositeMessage(for: data, context: context)
 
             let sig = Data(signature)
-            let mldsaSig = sig.subdata(in: 0..<MLDSA44Ed25519SSH.mldsaSignatureLength)
-            let ed25519Sig = sig.subdata(in: MLDSA44Ed25519SSH.mldsaSignatureLength..<MLDSA44Ed25519SSH.signatureLength)
-            let mldsaPub = rawRepresentation.subdata(in: 0..<MLDSA44Ed25519SSH.mldsaPublicKeyLength)
-            let ed25519Pub = rawRepresentation.subdata(in: MLDSA44Ed25519SSH.mldsaPublicKeyLength..<MLDSA44Ed25519SSH.publicKeyLength)
+            let mldsaSig = sig.subdata(in: 0..<MLDSA44Ed25519Algorithm<Format>.mldsaSignatureLength)
+            let ed25519Sig = sig.subdata(in: MLDSA44Ed25519Algorithm<Format>.mldsaSignatureLength..<MLDSA44Ed25519Algorithm<Format>.signatureLength)
+            let mldsaPub = rawRepresentation.subdata(in: 0..<MLDSA44Ed25519Algorithm<Format>.mldsaPublicKeyLength)
+            let ed25519Pub = rawRepresentation.subdata(in: MLDSA44Ed25519Algorithm<Format>.mldsaPublicKeyLength..<MLDSA44Ed25519Algorithm<Format>.publicKeyLength)
 
             // Both halves must verify: ML-DSA with the label as FIPS 204
             // context, Ed25519 plain over M'.
@@ -103,7 +131,7 @@ public enum MLDSA44Ed25519SSH {
                 mldsaSig,
                 message: mPrime,
                 publicKey: mldsaPub,
-                context: MLDSA44Ed25519SSH.compositeLabel
+                context: MLDSA44Ed25519Algorithm<Format>.compositeLabel
             ) else {
                 return false
             }
@@ -129,13 +157,13 @@ public enum MLDSA44Ed25519SSH {
     // MARK: - Signature
 
     public struct Signature: NIOSSHSignatureProtocol, Sendable {
-        public static let signaturePrefix = MLDSA44Ed25519SSH.algorithmName
+        public static var signaturePrefix: String { MLDSA44Ed25519Algorithm<Format>.algorithmName }
 
         /// mldsaSig(2420) || ed25519Sig(64)
         public let rawRepresentation: Data
 
         public init(rawRepresentation: Data) throws {
-            guard rawRepresentation.count == MLDSA44Ed25519SSH.signatureLength else {
+            guard rawRepresentation.count == MLDSA44Ed25519Algorithm<Format>.signatureLength else {
                 throw MLDSAError(message: "Invalid ML-DSA-44+Ed25519 signature length \(rawRepresentation.count)")
             }
             self.rawRepresentation = Data(rawRepresentation)
@@ -157,7 +185,7 @@ public enum MLDSA44Ed25519SSH {
     // MARK: - Private key
 
     public struct PrivateKey: NIOSSHPrivateKeyProtocol, Sendable {
-        public static let keyPrefix = MLDSA44Ed25519SSH.algorithmName
+        public static var keyPrefix: String { MLDSA44Ed25519Algorithm<Format>.algorithmName }
 
         /// 32-byte FIPS 204 keygen seed ξ.
         public let mldsaSeed: Data
@@ -185,12 +213,12 @@ public enum MLDSA44Ed25519SSH {
 
         /// Rebuild a key pair from the serialized 64-byte seed pair.
         public init(seedRepresentation: Data) throws {
-            guard seedRepresentation.count == MLDSA44Ed25519SSH.seedRepresentationLength else {
+            guard seedRepresentation.count == MLDSA44Ed25519Algorithm<Format>.seedRepresentationLength else {
                 throw MLDSAError(message: "Invalid ML-DSA-44+Ed25519 private key length \(seedRepresentation.count)")
             }
             let seeds = Data(seedRepresentation)
-            let mldsaSeed = seeds.subdata(in: 0..<MLDSA44Ed25519SSH.mldsaSeedLength)
-            let ed25519Seed = seeds.subdata(in: MLDSA44Ed25519SSH.mldsaSeedLength..<MLDSA44Ed25519SSH.seedRepresentationLength)
+            let mldsaSeed = seeds.subdata(in: 0..<MLDSA44Ed25519Algorithm<Format>.mldsaSeedLength)
+            let ed25519Seed = seeds.subdata(in: MLDSA44Ed25519Algorithm<Format>.mldsaSeedLength..<MLDSA44Ed25519Algorithm<Format>.seedRepresentationLength)
 
             let mldsaPublicKey = try MLDSA44Boring.publicKeyFromSeed(mldsaSeed)
             let ed25519Key = try Curve25519.Signing.PrivateKey(rawRepresentation: ed25519Seed)
@@ -208,11 +236,11 @@ public enum MLDSA44Ed25519SSH {
 
         /// Context-capable core; SSH always signs with an empty context.
         func compositeSignature<D: DataProtocol>(for data: D, context: Data) throws -> Data {
-            let mPrime = MLDSA44Ed25519SSH.compositeMessage(for: data, context: context)
+            let mPrime = MLDSA44Ed25519Algorithm<Format>.compositeMessage(for: data, context: context)
             let mldsaSig = try MLDSA44Boring.sign(
                 mPrime,
                 seed: mldsaSeed,
-                context: MLDSA44Ed25519SSH.compositeLabel
+                context: MLDSA44Ed25519Algorithm<Format>.compositeLabel
             )
             let ed25519Sig = try Curve25519.Signing.PrivateKey(rawRepresentation: ed25519Seed)
                 .signature(for: mPrime)
@@ -237,6 +265,7 @@ public enum MLDSA44SSH {
 
     public struct PublicKey: NIOSSHPublicKeyProtocol, Sendable {
         public static let publicKeyPrefix = MLDSA44SSH.algorithmName
+        public static var defaultHostKeyAlgorithms: [String]? { [] }
 
         public let rawRepresentation: Data
 
