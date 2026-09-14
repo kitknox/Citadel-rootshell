@@ -20,7 +20,7 @@ let package = Package(
         // required by Citadel.
         .package(
             url: "https://github.com/kitknox/swift-nio-ssh-rootshell.git",
-            exact: "0.1.3"
+            exact: "0.1.4"
         ),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/attaswift/BigInt.git", from: "5.2.0"),
