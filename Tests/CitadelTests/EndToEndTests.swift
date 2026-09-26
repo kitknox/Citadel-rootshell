@@ -136,6 +136,42 @@ final class EndToEndTests: XCTestCase {
         )
     }
 
+    /// The server banner is already waiting when the handlers go in; `connect(on:)` must start reads.
+    func testConnectOnChannelWithAutoReadOff() async throws {
+        let authDelegate = AuthDelegate(supportedAuthenticationMethods: .password) { request, promise in
+            promise.succeed(request.username == "citadel" ? .success : .failure)
+        }
+        let server = try await SSHServer.host(
+            host: "localhost",
+            port: 2222,
+            hostKeys: [.init(p521Key: .init())],
+            authenticationDelegate: authDelegate
+        )
+
+        do {
+            let channel = try await ClientBootstrap(group: MultiThreadedEventLoopGroup.singleton)
+                .channelOption(ChannelOptions.autoRead, value: false)
+                .connect(host: "localhost", port: 2222)
+                .get()
+            try await Task.sleep(nanoseconds: 200_000_000)
+
+            var settings = SSHClientSettings(
+                host: "localhost",
+                port: 2222,
+                authenticationMethod: { .passwordBased(username: "citadel", password: "test") },
+                hostKeyValidator: .acceptAnything()
+            )
+            settings.loginTimeout = .seconds(5)
+            let client = try await SSHClient.connect(on: channel, settings: settings)
+            try await client.close()
+        } catch {
+            try await server.close()
+            throw error
+        }
+
+        try await server.close()
+    }
+
     func testClientRejectsWrongHostKey() async throws {
         let hostKey = NIOSSHPrivateKey(p521Key: .init())
         try await runTest(

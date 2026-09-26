@@ -275,6 +275,9 @@ public final class SSHClient {
     }
 
     /// Connects to an SSH server.
+    ///
+    /// Create `channel` with `ChannelOptions.autoRead` off: a server banner read before the SSH
+    /// handlers are installed is dropped and the handshake hangs. Reads are enabled here once they are.
     /// - settings: The settings to use for the connection.
     /// - Returns: An SSH client.
     public static func connect(
@@ -289,7 +292,9 @@ public final class SSHClient {
                 on: channel,
                 inboundChannelHandler: inboundChannelHandler,
                 settings: settings
-            )
+            ).flatMap {
+                channel.setOption(ChannelOptions.autoRead, value: true)
+            }
         }.get()
         
         let sshHandler = try await channel.pipeline.handler(type: NIOSSHHandler.self).get()
@@ -362,7 +367,9 @@ public final class SSHClient {
             hostKeyValidator: hostKeyValidator,
             protocolOptions: protocolOptions
         ).get()
-        
+        // See connect(on:settings:): reads start only once the SSH handlers are installed.
+        try await channel.setOption(ChannelOptions.autoRead, value: true).get()
+
         let sshHandler = try await channel.pipeline.handler(type: NIOSSHHandler.self).get()
         let session = SSHClientSession(channel: channel, inboundChannelHandler: inboundChannelHandler, sshHandler: sshHandler)
         
