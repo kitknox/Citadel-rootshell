@@ -61,6 +61,14 @@ final class SFTPListDirectoryTests: XCTestCase {
         XCTAssertTrue(names.contains("inside"))
     }
 
+    func testEmptyPathListsWorkingDirectory() async throws {
+        // REALPATH treats "" as the working directory, but OPENDIR("") fails
+        // with ENOENT, so the empty path has to be mapped before opening.
+        FileManager.default.createFile(atPath: "\(root!)/in-cwd", contents: nil)
+        let names = try await sftp.listDirectory(atPath: "").flatMap(\.components).map(\.filename)
+        XCTAssertTrue(names.contains("in-cwd"))
+    }
+
     func testMissingFolderThrowsNoSuchFile() async throws {
         do {
             _ = try await sftp.listDirectory(atPath: "\(root!)/missing")

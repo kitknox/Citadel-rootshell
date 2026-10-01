@@ -134,6 +134,9 @@ public final class SFTPClient: Sendable {
         // the path goes straight to it. Canonicalising it first cost two
         // `realpath` round trips per listing; that is now only the fallback
         // for a server that rejects the path as given.
+        // `realpath` treats "" as the working directory but `opendir` fails it
+        // with ENOENT, so the empty path is spelled out as ".".
+        let path = path.isEmpty ? "." : path
         let handle: ByteBuffer
         do {
             handle = try await openDirectory(path)
