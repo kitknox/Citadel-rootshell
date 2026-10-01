@@ -130,22 +130,29 @@ public final class SFTPClient: Sendable {
     public func listDirectory(
         atPath path: String
     ) async throws -> [SFTPMessage.Name] {
-        var path = path
-        var oldPath: String
+        // Servers resolve relative paths and links in `opendir` themselves, so
+        // the path goes straight to it. Canonicalising it first cost two
+        // `realpath` round trips per listing; that is now only the fallback
+        // for a server that rejects the path as given.
+        let handle: ByteBuffer
+        do {
+            handle = try await openDirectory(path)
+        } catch let status as SFTPMessage.Status where status.errorCode == .noSuchFile || status.errorCode == .permissionDenied {
+            // A definite answer about the folder itself; resolving won't change it.
+            throw status
+        } catch {
+            let resolved = try await canonicalPath(path)
+            guard resolved != path else { throw error }
+            handle = try await openDirectory(resolved)
+        }
 
-        repeat {
-            oldPath = path
-            guard case .name(let realpath) = try await sendRequest(.realpath(.init(requestId: self.allocateRequestId(), path: path))) else {
-                self.logger.warning("SFTP server returned bad response to open file request, this is a protocol error")
-                throw SFTPError.invalidResponse
+        // Every handle is a file descriptor in the server process until it is
+        // closed; left open, a long-lived session runs into the server's
+        // descriptor limit. Nothing waits for the close to be acknowledged.
+        defer {
+            Task { [self] in
+                _ = try? await self.sendRequest(.closeFile(.init(requestId: self.allocateRequestId(), handle: handle)))
             }
-
-            path = realpath.path
-        } while path != oldPath
-        
-        guard case .handle(let handle) = try await sendRequest(.opendir(.init(requestId: self.allocateRequestId(), handle: path))) else {
-            self.logger.warning("SFTP server returned bad response to open file request, this is a protocol error")
-            throw SFTPError.invalidResponse
         }
         
         var names = [SFTPMessage.Name]()
@@ -153,7 +160,7 @@ public final class SFTPClient: Sendable {
             .readdir(
                 .init(
                     requestId: self.allocateRequestId(),
-                    handle: handle.handle
+                    handle: handle
                 )
             )
         )
@@ -164,13 +171,41 @@ public final class SFTPClient: Sendable {
                 .readdir(
                     .init(
                         requestId: self.allocateRequestId(),
-                        handle: handle.handle
+                        handle: handle
                     )
                 )
             )
         }
         
         return names
+    }
+
+    private func openDirectory(_ path: String) async throws -> ByteBuffer {
+        let response = try await sendRequest(.opendir(.init(requestId: self.allocateRequestId(), handle: path)))
+        switch response {
+        case .handle(let handle):
+            return handle.handle
+        case .status(let status):
+            throw status
+        default:
+            self.logger.warning("SFTP server returned bad response to open directory request, this is a protocol error")
+            throw SFTPError.invalidResponse
+        }
+    }
+
+    /// Resolves `path` until the server's answer stops changing.
+    private func canonicalPath(_ path: String) async throws -> String {
+        var path = path
+        var oldPath: String
+        repeat {
+            oldPath = path
+            guard case .name(let realpath) = try await sendRequest(.realpath(.init(requestId: self.allocateRequestId(), path: path))) else {
+                self.logger.warning("SFTP server returned bad response to realpath request, this is a protocol error")
+                throw SFTPError.invalidResponse
+            }
+            path = realpath.path
+        } while path != oldPath
+        return path
     }
     
     /// Get the attributes of a file on the SFTP server.
