@@ -36,6 +36,9 @@ public final class SFTPFile {
         self.path = path
     }
     
+    /// The most a single `read` requests, so the reply fits `SFTPMessageParser.maxMessageLength`.
+    public static let maxReadLength: UInt32 = 1024 * 1024
+
     /// A `Logger` for the file. Uses the logger of the client that opened the file.
     public var logger: Logging.Logger { self.client.logger }
     
@@ -77,8 +80,8 @@ public final class SFTPFile {
     ///
     /// - Parameters:
     ///   - offset: Starting position in the file (defaults to 0)
-    ///   - length: Maximum number of bytes to read (defaults to UInt32.max)
-    /// - Returns: ByteBuffer containing the read data
+    ///   - length: Maximum number of bytes to read, capped at `maxReadLength` (defaults to UInt32.max)
+    /// - Returns: ByteBuffer containing the read data, which may be shorter than `length`
     /// - Throws: SFTPError if the file handle is invalid or read fails
     ///
     /// ## Example
@@ -86,11 +89,11 @@ public final class SFTPFile {
     /// let file = try await sftp.withFile(filePath: "test.txt", flags: .read) { file in
     ///     // Read first 1024 bytes
     ///     let start = try await file.read(from: 0, length: 1024)
-    /// 
+    ///
     ///     // Read next 1024 bytes
     ///     let middle = try await file.read(from: 1024, length: 1024)
-    /// 
-    ///     // Read remaining bytes (up to 4GB)
+    ///
+    ///     // Read up to maxReadLength more bytes; readAll() loops for the rest
     ///     let rest = try await file.read(from: 2048)
     /// }
     /// ```
@@ -99,7 +102,7 @@ public final class SFTPFile {
 
         let response = try await self.client.sendRequest(.read(.init(
             requestId: self.client.allocateRequestId(),
-            handle: self.handle, offset: offset, length: length
+            handle: self.handle, offset: offset, length: Swift.min(length, Self.maxReadLength)
         )))
         
         switch response {

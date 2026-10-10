@@ -2,10 +2,19 @@ import NIOCore
 
 struct SFTPMessageParser: ByteToMessageDecoder {
     typealias InboundOut = SFTPMessage
-    
+
+    /// Caps what a peer's length field can make us buffer; `SFTPFile.maxReadLength` stays under it.
+    static let maxMessageLength: UInt32 = 4 * 1024 * 1024
+
     mutating func decode(context: ChannelHandlerContext, buffer: inout ByteBuffer) throws -> DecodingState {
         let oldReaderIndex = buffer.readerIndex
-        
+
+        // A zero length can never satisfy the slice below and would stall the decoder.
+        if let length = buffer.getInteger(at: oldReaderIndex, as: UInt32.self),
+           length == 0 || length > Self.maxMessageLength {
+            throw SFTPError.invalidMessageLength(length)
+        }
+
         guard
             let length = buffer.readInteger(as: UInt32.self),
             let typeByte = buffer.readInteger(as: UInt8.self),

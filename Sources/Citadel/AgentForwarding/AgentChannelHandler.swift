@@ -69,10 +69,22 @@ public final class AgentChannelHandler: ChannelDuplexHandler {
 
     // MARK: - Private
 
+    /// Matches OpenSSH's AGENT_MAX_LEN, so a peer's length field can't make us buffer up to 4 GiB.
+    static let maxMessageLength: UInt32 = 256 * 1024
+
     private func processMessages(context: ChannelHandlerContext) {
-        while let message = tryReadMessage() {
+        while true {
+            if let length = buffer.getInteger(at: buffer.readerIndex, as: UInt32.self),
+               length > Self.maxMessageLength {
+                logger.error("Agent message length \(length) exceeds limit, closing channel")
+                buffer.clear()
+                context.close(promise: nil)
+                return
+            }
+            guard let message = tryReadMessage() else { break }
             handleMessage(message, context: context)
         }
+        buffer.discardReadBytes()
     }
 
     private func tryReadMessage() -> SSHAgentMessage? {
