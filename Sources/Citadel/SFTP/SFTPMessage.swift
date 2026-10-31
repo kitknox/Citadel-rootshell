@@ -37,6 +37,8 @@ enum SFTPRequest: CustomDebugStringConvertible, Sendable {
     case rename(SFTPMessage.Rename)
     case lstat(SFTPMessage.LStat)
     case setstat(SFTPMessage.SetStat)
+    case fsetstat(SFTPMessage.FileSetStat)
+    case lsetstat(SFTPMessage.LinkSetStat)
     case readlink(SFTPMessage.Readlink)
     case symlink(SFTPMessage.Symlink)
 
@@ -70,6 +72,10 @@ enum SFTPRequest: CustomDebugStringConvertible, Sendable {
             case .rename(let message):
                 return message.requestId
             case .lstat(let message):
+                return message.requestId
+            case .fsetstat(let message):
+                return message.requestId
+            case .lsetstat(let message):
                 return message.requestId
             case .setstat(let message):
                 return message.requestId
@@ -111,6 +117,10 @@ enum SFTPRequest: CustomDebugStringConvertible, Sendable {
             return .rename(message)
         case .lstat(let message):
             return .lstat(message)
+        case .fsetstat(let message):
+            return .fsetstat(message)
+        case .lsetstat(let message):
+            return .lsetstat(message)
         case .setstat(let message):
             return .setstat(message)
         case .readlink(let message):
@@ -136,6 +146,8 @@ enum SFTPRequest: CustomDebugStringConvertible, Sendable {
         case .rmdir(let message): return message.debugDescription
         case .rename(let message): return message.debugDescription
         case .lstat(let message): return message.debugDescription
+        case .fsetstat(let message): return message.debugDescription
+        case .lsetstat(let message): return message.debugDescription
         case .setstat(let message): return message.debugDescription
         case .readlink(let message): return message.debugDescription
         case .symlink(let message): return message.debugDescription
@@ -201,7 +213,7 @@ enum SFTPResponse: Sendable {
             self = .name(message)
         case .attributes(let message):
             self = .attributes(message)
-        case .realpath, .openFile, .fstat, .closeFile, .read, .write, .initialize, .version, .stat, .lstat, .rmdir, .opendir, .readdir, .remove, .fsetstat, .setstat, .symlink, .readlink, .rename:
+        case .realpath, .openFile, .fstat, .closeFile, .read, .write, .initialize, .version, .stat, .lstat, .rmdir, .opendir, .readdir, .remove, .fsetstat, .lsetstat, .setstat, .symlink, .readlink, .rename:
             return nil
         }
     }
@@ -361,6 +373,19 @@ public enum SFTPMessage: Sendable {
         fileprivate var debugVariantWithoutLargeData: Self { self }
     }
 
+    /// `lsetstat@openssh.com`: SETSTAT that doesn't follow a trailing symlink. Client-only.
+    public struct LinkSetStat: SFTPMessageContent, Sendable {
+        public static let id = SFTPMessageType.extended
+        public static let extensionName = "lsetstat@openssh.com"
+
+        public let requestId: UInt32
+        public var path: String
+        public var attributes: SFTPFileAttributes
+
+        public var debugDescription: String { "{\(self.requestId)}(\(self.path),\(self.attributes)" }
+        fileprivate var debugVariantWithoutLargeData: Self { self }
+    }
+
     public struct Rename: SFTPMessageContent, Sendable {
         public static let id = SFTPMessageType.rename
 
@@ -481,8 +506,12 @@ public enum SFTPMessage: Sendable {
         public var count: UInt32 { UInt32(components.count) }
         public let components: [SFTPPathComponent]
         
-        var path: String {
-            return components.map(\.filename).joined(separator: "/")
+        /// REALPATH and READLINK replies carry exactly one name (OpenSSH treats anything else as fatal).
+        func singlePath() throws -> String {
+            guard components.count == 1 else {
+                throw SFTPError.invalidResponse
+            }
+            return components[0].filename
         }
         
         public var debugDescription: String { "{\(self.requestId)}('\(self.count)', components)" }
@@ -571,6 +600,7 @@ public enum SFTPMessage: Sendable {
     case remove(Remove)
     case fsetstat(FileSetStat)
     case setstat(SetStat)
+    case lsetstat(LinkSetStat)
     case symlink(Symlink)
     case readlink(Readlink)
     case lstat(LStat)
@@ -605,6 +635,7 @@ public enum SFTPMessage: Sendable {
                 .remove(let message as SFTPMessageContent),
                 .fsetstat(let message as SFTPMessageContent),
                 .setstat(let message as SFTPMessageContent),
+                .lsetstat(let message as SFTPMessageContent),
                 .symlink(let message as SFTPMessageContent),
                 .readlink(let message as SFTPMessageContent),
                 .rename(let message as SFTPMessageContent):
@@ -637,6 +668,7 @@ public enum SFTPMessage: Sendable {
                 .remove(let message as SFTPMessageContent),
                 .fsetstat(let message as SFTPMessageContent),
                 .setstat(let message as SFTPMessageContent),
+                .lsetstat(let message as SFTPMessageContent),
                 .symlink(let message as SFTPMessageContent),
                 .readlink(let message as SFTPMessageContent),
                 .rename(let message as SFTPMessageContent):
@@ -668,6 +700,7 @@ public enum SFTPMessage: Sendable {
         case .remove(let message): return Self.remove(message.debugVariantWithoutLargeData)
         case .fsetstat(let message): return Self.fsetstat(message.debugVariantWithoutLargeData)
         case .setstat(let message): return Self.setstat(message.debugVariantWithoutLargeData)
+        case .lsetstat(let message): return Self.lsetstat(message.debugVariantWithoutLargeData)
         case .symlink(let message): return Self.symlink(message.debugVariantWithoutLargeData)
         case .readlink(let message): return Self.readlink(message.debugVariantWithoutLargeData)
         case .rename(let message): return Self.rename(message.debugVariantWithoutLargeData)

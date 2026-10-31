@@ -26,7 +26,15 @@ public final class SFTPClient: Sendable {
     
     /// What it says on the tin.
     public let logger: Logger
-    
+
+    /// Extension names from the server's SSH_FXP_VERSION.
+    private let serverExtensions = NIOLockedValueBox<Set<String>>([])
+
+    /// Whether the server advertised `lsetstat@openssh.com`.
+    public var supportsLinkSetStat: Bool {
+        serverExtensions.withLockedValue { $0.contains(SFTPMessage.LinkSetStat.extensionName) }
+    }
+
     fileprivate init(channel: Channel, responses: SFTPResponses, logger: Logger) {
         self.channel = channel
         self.responses = responses
@@ -196,17 +204,22 @@ public final class SFTPClient: Sendable {
         }
     }
 
-    /// Resolves `path` until the server's answer stops changing.
+    /// Resolves `path` until the server's answer stops changing; bounded so an oscillating server can't spin us.
     private func canonicalPath(_ path: String) async throws -> String {
         var path = path
         var oldPath: String
+        var rounds = 0
         repeat {
+            rounds += 1
+            guard rounds <= 8 else {
+                throw SFTPError.invalidResponse
+            }
             oldPath = path
             guard case .name(let realpath) = try await sendRequest(.realpath(.init(requestId: self.allocateRequestId(), path: path))) else {
                 self.logger.warning("SFTP server returned bad response to realpath request, this is a protocol error")
                 throw SFTPError.invalidResponse
             }
-            path = realpath.path
+            path = try realpath.singlePath()
         } while path != oldPath
         return path
     }
@@ -460,7 +473,7 @@ public final class SFTPClient: Sendable {
             self.logger.warning("SFTP server returned bad response to open file request, this is a protocol error")
             throw SFTPError.invalidResponse
         }
-        return realpath.path
+        return try realpath.singlePath()
     }
 
     /// Attributes of a path without following a trailing symlink.
@@ -490,6 +503,22 @@ public final class SFTPClient: Sendable {
         )))
     }
 
+    /// Like `setAttributes(at:attributes:)` but doesn't follow a trailing symlink, via
+    /// `lsetstat@openssh.com`; falls back to SETSTAT when the server lacks it, as OpenSSH's
+    /// sftp does for directory modes (bc01263f1).
+    public func setLinkAttributes(at path: String, attributes: SFTPFileAttributes) async throws {
+        guard supportsLinkSetStat else {
+            return try await setAttributes(at: path, attributes: attributes)
+        }
+        guard case .status = try await sendRequest(.lsetstat(.init(
+            requestId: allocateRequestId(),
+            path: path,
+            attributes: attributes
+        ))) else {
+            throw SFTPError.invalidResponse
+        }
+    }
+
     /// The target a symlink points at.
     public func readLink(at path: String) async throws -> String {
         guard case let .name(name) = try await sendRequest(.readlink(.init(
@@ -498,7 +527,7 @@ public final class SFTPClient: Sendable {
         ))) else {
             throw SFTPError.invalidResponse
         }
-        return name.path
+        return try name.singlePath()
     }
 
     /// Creates a symlink at `linkPath` pointing at `targetPath`.
@@ -540,6 +569,7 @@ public final class SFTPClient: Sendable {
                 throw SFTPError.unsupportedVersion(serverVersion.version)
             }
 
+            self.serverExtensions.withLockedValue { $0 = Set(serverVersion.extensionData.map(\.0)) }
             self.logger.info("SFTP connection opened and ready")
             return self
         }

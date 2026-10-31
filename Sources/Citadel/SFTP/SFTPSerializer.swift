@@ -119,6 +119,12 @@ final class SFTPMessageSerializer: MessageToByteEncoder {
             out.writeInteger(setstat.requestId)
             out.writeSSHString(setstat.path)
             out.writeSFTPFileAttributes(setstat.attributes)
+        case .lsetstat(let lsetstat):
+            out.writeInteger(SFTPMessage.LinkSetStat.id.rawValue)
+            out.writeInteger(lsetstat.requestId)
+            out.writeSSHString(SFTPMessage.LinkSetStat.extensionName)
+            out.writeSSHString(lsetstat.path)
+            out.writeSFTPFileAttributes(lsetstat.attributes)
         case .symlink(let symlink):
             out.writeInteger(SFTPMessage.Symlink.id.rawValue)
             out.writeInteger(symlink.requestId)

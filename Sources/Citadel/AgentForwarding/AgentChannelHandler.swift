@@ -26,6 +26,15 @@ public final class AgentChannelHandler: ChannelDuplexHandler {
     private var buffer: ByteBuffer
     private let logger: Logger
 
+    // Event-loop confined; see `enqueue`.
+    private var pendingRequests = CircularBuffer<SSHAgentMessage>()
+    private var isHandlingRequest = false
+    private var currentRequest: Task<Void, Never>?
+    /// Set on close: queued requests are dropped so no further signing or prompts happen.
+    private var isClosed = false
+    /// Bounds requests queued behind a slow one (a sign awaiting approval).
+    static let maxPendingRequests = 32
+
     /// Creates a new agent channel handler.
     ///
     /// - Parameters:
@@ -59,7 +68,19 @@ public final class AgentChannelHandler: ChannelDuplexHandler {
 
     public func channelInactive(context: ChannelHandlerContext) {
         logger.debug("Agent channel closed")
+        stopHandlingRequests()
         context.fireChannelInactive()
+    }
+
+    public func handlerRemoved(context: ChannelHandlerContext) {
+        stopHandlingRequests()
+    }
+
+    private func stopHandlingRequests() {
+        isClosed = true
+        pendingRequests.removeAll()
+        currentRequest?.cancel()
+        currentRequest = nil
     }
 
     public func errorCaught(context: ChannelHandlerContext, error: Error) {
@@ -82,7 +103,7 @@ public final class AgentChannelHandler: ChannelDuplexHandler {
                 return
             }
             guard let message = tryReadMessage() else { break }
-            handleMessage(message, context: context)
+            enqueue(message, context: context)
         }
         buffer.discardReadBytes()
     }
@@ -121,78 +142,75 @@ public final class AgentChannelHandler: ChannelDuplexHandler {
         }
     }
 
-    private func handleMessage(_ message: SSHAgentMessage, context: ChannelHandlerContext) {
-        let eventLoop = context.eventLoop
+    /// Queues a request; replies go out strictly in order, one request at a time, since the
+    /// agent protocol has no request ids.
+    private func enqueue(_ message: SSHAgentMessage, context: ChannelHandlerContext) {
+        guard !isClosed else { return }
+        guard pendingRequests.count < Self.maxPendingRequests else {
+            logger.error("Too many queued agent requests, closing channel")
+            context.close(promise: nil)
+            return
+        }
+        pendingRequests.append(message)
+        startNextRequestIfIdle(context: context)
+    }
 
+    private func startNextRequestIfIdle(context: ChannelHandlerContext) {
+        guard !isClosed, !isHandlingRequest, let message = pendingRequests.popFirst() else {
+            return
+        }
+        isHandlingRequest = true
+        let eventLoop = context.eventLoop
+        currentRequest = Task {
+            let response = await self.response(to: message)
+            eventLoop.execute {
+                guard !self.isClosed else { return }
+                let data = SSHChannelData(type: .channel, data: .byteBuffer(response))
+                context.writeAndFlush(self.wrapOutboundOut(data), promise: nil)
+                self.isHandlingRequest = false
+                self.currentRequest = nil
+                self.startNextRequestIfIdle(context: context)
+            }
+        }
+    }
+
+    private func response(to message: SSHAgentMessage) async -> ByteBuffer {
         switch message {
         case .requestIdentities:
-            Task {
-                await self.handleRequestIdentities(context: context, eventLoop: eventLoop)
+            do {
+                let identities = try await delegate.listIdentities()
+                return SSHAgentMessageSerializer.serialize(.identitiesAnswer(identities))
+            } catch {
+                logger.error("Failed to list identities: \(error)")
+                return SSHAgentMessageSerializer.serialize(.failure)
             }
 
         case .signRequest(let request):
-            Task {
-                await self.handleSignRequest(request, context: context, eventLoop: eventLoop)
+            do {
+                if let signature = try await delegate.sign(
+                    publicKeyBlob: request.publicKeyBlob,
+                    data: request.data,
+                    flags: request.flags
+                ) {
+                    return SSHAgentMessageSerializer.serialize(.signResponse(signature))
+                }
+                // Signing denied
+                return SSHAgentMessageSerializer.serialize(.failure)
+            } catch {
+                logger.error("Failed to sign: \(error)")
+                return SSHAgentMessageSerializer.serialize(.failure)
             }
 
         case .extensionRequest(let request):
-            // Handle extension requests - we don't support any extensions currently,
-            // so respond with SSH_AGENT_EXTENSION_FAILURE
+            // No extensions are supported.
             logger.debug("Received agent extension request: \(request.extensionName)")
-            let response = SSHAgentMessageSerializer.serialize(.extensionFailure)
-            let data = SSHChannelData(type: .channel, data: .byteBuffer(response))
-            context.writeAndFlush(self.wrapOutboundOut(data), promise: nil)
+            return SSHAgentMessageSerializer.serialize(.extensionFailure)
 
-        case .failure, .success, .identitiesAnswer, .signResponse, .extensionFailure:
-            // These are responses, not requests - ignore them
-            logger.warning("Received unexpected agent response message")
-
-        case .unknown(let typeRaw):
-            // Unknown message type - log the raw value for debugging
-            logger.warning("Received unknown agent message type: \(typeRaw)")
-        }
-    }
-
-    private func handleRequestIdentities(context: ChannelHandlerContext, eventLoop: EventLoop) async {
-        do {
-            let identities = try await delegate.listIdentities()
-            let response = SSHAgentMessageSerializer.serialize(.identitiesAnswer(identities))
-            await sendResponse(response, context: context, eventLoop: eventLoop)
-        } catch {
-            logger.error("Failed to list identities: \(error)")
-            let response = SSHAgentMessageSerializer.serialize(.failure)
-            await sendResponse(response, context: context, eventLoop: eventLoop)
-        }
-    }
-
-    private func handleSignRequest(_ request: SSHAgentSignRequest, context: ChannelHandlerContext, eventLoop: EventLoop) async {
-        do {
-            if let signature = try await delegate.sign(
-                publicKeyBlob: request.publicKeyBlob,
-                data: request.data,
-                flags: request.flags
-            ) {
-                let response = SSHAgentMessageSerializer.serialize(.signResponse(signature))
-                await sendResponse(response, context: context, eventLoop: eventLoop)
-            } else {
-                // Signing denied
-                let response = SSHAgentMessageSerializer.serialize(.failure)
-                await sendResponse(response, context: context, eventLoop: eventLoop)
-            }
-        } catch {
-            logger.error("Failed to sign: \(error)")
-            let response = SSHAgentMessageSerializer.serialize(.failure)
-            await sendResponse(response, context: context, eventLoop: eventLoop)
-        }
-    }
-
-    private func sendResponse(_ buffer: ByteBuffer, context: ChannelHandlerContext, eventLoop: EventLoop) async {
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            eventLoop.execute {
-                let data = SSHChannelData(type: .channel, data: .byteBuffer(buffer))
-                context.writeAndFlush(self.wrapOutboundOut(data), promise: nil)
-                continuation.resume()
-            }
+        case .failure, .success, .identitiesAnswer, .signResponse, .extensionFailure, .unknown:
+            // Add/remove/lock, malformed and unknown requests: OpenSSH's agent answers
+            // SSH_AGENT_FAILURE, and a client waiting on a reply must not hang.
+            logger.debug("Refusing unsupported agent request: \(message)")
+            return SSHAgentMessageSerializer.serialize(.failure)
         }
     }
 }

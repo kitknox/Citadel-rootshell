@@ -53,19 +53,29 @@ final class ExecHandler: ChannelDuplexHandler {
     var context: ExecCommandContext?
     var pipeChannel: Channel?
     var environment: [String: String] = [:]
+    private var acceptedEnvironmentRequests = 0
+    private var environmentSetup: Task<Void, Never>?
+    /// Env requests queued in `environmentSetup`; a peer outrunning a slow setter is cut off.
+    private var pendingEnvironmentRequests = 0
+    static let maxPendingEnvironmentRequests = 32
+    // Event-loop confined, like `context`: `exec` publishes its command context here.
+    private var isClosed = false
     let username: String?
-    
+
     func handlerAdded(context: ChannelHandlerContext) {
         context.channel.setOption(ChannelOptions.allowRemoteHalfClosure, value: true).whenFailure { error in
             context.fireErrorCaught(error)
         }
     }
-    
+
     func channelInactive(context: ChannelHandlerContext) {
+        // A command published after this point is terminated by `exec` itself.
+        isClosed = true
+        let commandContext = self.context
+        self.context = nil
+        self.pipeChannel = nil
         Task {
-            try await self.context?.terminate()
-            self.context = nil
-            self.pipeChannel = nil
+            try await commandContext?.terminate()
         }
         context.fireChannelInactive()
     }
@@ -81,14 +91,48 @@ final class ExecHandler: ChannelDuplexHandler {
                 }
             }
         case let event as SSHChannelRequestEvent.EnvironmentRequest:
-            if let delegate = delegate {
-                Task {
-                    try await delegate.setEnvironmentValue(event.value, forKey: event.name)
+            // OpenSSH sshd's limits (d3bdf031d): at most 128 variables, names 2 KiB, values 16 KiB.
+            let accepted = self.delegate != nil
+                && self.acceptedEnvironmentRequests < 128
+                && event.name.utf8.count <= 2048
+                && event.value.utf8.count <= 16384
+            let setter = accepted ? self.delegate : nil
+            // A refusal nobody waits on needs no work at all.
+            guard setter != nil || event.wantReply else { break }
+            guard self.pendingEnvironmentRequests < Self.maxPendingEnvironmentRequests else {
+                context.close(promise: nil)
+                break
+            }
+            if setter != nil {
+                self.acceptedEnvironmentRequests += 1
+            }
+            self.pendingEnvironmentRequests += 1
+            // Every env request, refused ones included, replies through this chain: channel replies
+            // carry no request id, so they must leave in arrival order. `exec` waits for the chain.
+            let previous = self.environmentSetup
+            let eventLoop = context.eventLoop
+            let channel = context.channel
+            self.environmentSetup = Task {
+                await previous?.value
+                var succeeded = false
+                if let setter {
+                    do {
+                        try await setter.setEnvironmentValue(event.value, forKey: event.name)
+                        succeeded = true
+                    } catch {}
+                }
+                let replySucceeded = succeeded
+                eventLoop.execute {
+                    self.pendingEnvironmentRequests -= 1
+                    guard event.wantReply, !self.isClosed else { return }
+                    let reply: Any = replySucceeded ? ChannelSuccessEvent() : ChannelFailureEvent()
+                    channel.triggerUserOutboundEvent(reply, promise: nil)
                 }
             }
         case ChannelEvent.inputClosed:
+            let commandContext = self.context
             Task {
-                try await self.context?.inputClosed()
+                try await commandContext?.inputClosed()
             }
         default:
             context.fireUserInboundEventTriggered(event)
@@ -146,15 +190,39 @@ final class ExecHandler: ChannelDuplexHandler {
                 )
         }.flatMap { pipeChannel -> EventLoopFuture<Channel> in
             self.pipeChannel = pipeChannel
+            let environmentSetup = self.environmentSetup
+            let eventLoop = channel.eventLoop
             let start = channel.eventLoop.makePromise(of: Void.self)
             start.completeWithTask {
+                await environmentSetup?.value
+                // The channel may have closed while env setters ran: start nothing that can't be torn down.
+                // Wherever no command will report an exit code, fail `successPromise` so it can't leak.
+                guard try await eventLoop.submit({ !self.isClosed }).get() else {
+                    try? await pipeChannel.close(mode: .all)
+                    successPromise.fail(ChannelError.ioOnClosedChannel)
+                    throw ChannelError.ioOnClosedChannel
+                }
+                let commandContext: ExecCommandContext
                 do {
-                    self.context = try await delegate.start(
+                    commandContext = try await delegate.start(
                         command: event.command,
                         outputHandler: handler
                     )
                 } catch {
-                    try await pipeChannel.close(mode: .all)
+                    try? await pipeChannel.close(mode: .all)
+                    successPromise.fail(error)
+                    throw error
+                }
+                // Publish on the loop, where channelInactive runs, so exactly one side terminates it.
+                let closedDuringStart = try await eventLoop.submit { () -> Bool in
+                    guard !self.isClosed else { return true }
+                    self.context = commandContext
+                    return false
+                }.get()
+                if closedDuringStart {
+                    try? await commandContext.terminate()
+                    try? await pipeChannel.close(mode: .all)
+                    successPromise.fail(ChannelError.ioOnClosedChannel)
                 }
             }
             

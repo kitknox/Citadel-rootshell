@@ -24,6 +24,39 @@ enum SSHServerError: Error {
 }
 
 final class KeyTests: XCTestCase {
+    private func rsaPublicKeyBlob(modulusBits: Int, exponent: [UInt8] = [0x01, 0x00, 0x01]) -> ByteBuffer {
+        var modulus = [UInt8](repeating: 0xAB, count: modulusBits / 8)
+        modulus[0] = 0xC0
+        modulus[modulus.count - 1] |= 1
+        modulus.insert(0, at: 0)
+
+        var buffer = ByteBuffer()
+        buffer.writeInteger(UInt32(exponent.count))
+        buffer.writeBytes(exponent)
+        buffer.writeInteger(UInt32(modulus.count))
+        buffer.writeBytes(modulus)
+        return buffer
+    }
+
+    // Matches OpenSSH's SSH_RSA_MINIMUM/MAXIMUM_MODULUS_SIZE (cf. 3e2bbf871, 409167b83).
+    func testRSAPublicKeyModulusBounds() throws {
+        for bits in [1024, 2048, 4096, 16384] {
+            var blob = rsaPublicKeyBlob(modulusBits: bits)
+            XCTAssertNoThrow(try Insecure.RSA.PublicKey.read(from: &blob), "\(bits) bits")
+        }
+        for bits in [512, 1016, 16392, 32768] {
+            var blob = rsaPublicKeyBlob(modulusBits: bits)
+            XCTAssertThrowsError(try Insecure.RSA.PublicKey.read(from: &blob), "\(bits) bits")
+        }
+    }
+
+    func testRSAPublicKeyRejectsBadExponent() throws {
+        for exponent: [UInt8] in [[0x01], [0x02], [0x01, 0x00, 0x00], []] {
+            var blob = rsaPublicKeyBlob(modulusBits: 2048, exponent: exponent)
+            XCTAssertThrowsError(try Insecure.RSA.PublicKey.read(from: &blob), "e=\(exponent)")
+        }
+    }
+
     func testLegacyRSASignaturePolicy() {
         XCTAssertTrue(SSHRSASignaturePolicy.shouldAttemptLegacySHA1(
             serverSignatureAlgorithms: nil
@@ -98,6 +131,13 @@ final class KeyTests: XCTestCase {
 
         let sha1Signature = try privateKey.sha1Signature(for: message)
         XCTAssertTrue(publicKey.isValidSignature(sha1Signature, for: message))
+
+        // rsa-sha2-512: verified (session-bind, RSA CA signatures), routed through the protocol entry point.
+        let sha512Raw = try privateKey.signature(for: message, hashAlgorithm: .sha512).rawRepresentation
+        let sha512Signature: NIOSSHSignatureProtocol = Insecure.RSA.SHA512Signature(rawRepresentation: sha512Raw)
+        XCTAssertTrue(publicKey.isValidSignature(sha512Signature, for: message))
+        XCTAssertFalse(publicKey.isValidSignature(sha512Signature, for: Data("tampered".utf8)))
+        XCTAssertFalse(publicKey.isValidSignature(Insecure.RSA.Signature(rawRepresentation: sha512Raw) as NIOSSHSignatureProtocol, for: message))
 
         let legacyKey = privateKey.legacySHA1Key
         let legacyNIOSSHSignature = try legacyKey.signature(for: message)

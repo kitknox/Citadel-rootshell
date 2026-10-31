@@ -75,7 +75,23 @@ public final class SFTPFile {
                                                                                          
         return attributes.attributes
     }
-    
+
+    /// Sets attributes on the open handle (FSETSTAT); only the fields present in `attributes` change.
+    ///
+    /// Unlike a path SETSTAT, this can't be redirected by a symlink swapped in after the file was
+    /// opened (cf. OpenSSH bc01263f1).
+    public func setAttributes(_ attributes: SFTPFileAttributes) async throws {
+        guard self.isActive else { throw SFTPError.fileHandleInvalid }
+
+        guard case .status = try await self.client.sendRequest(.fsetstat(.init(
+            requestId: self.client.allocateRequestId(),
+            handle: self.handle,
+            attributes: attributes
+        ))) else {
+            throw SFTPError.invalidResponse
+        }
+    }
+
     /// Read up to the given number of bytes from the file, starting at the given byte offset.
     ///
     /// - Parameters:
@@ -146,13 +162,15 @@ public final class SFTPFile {
             if var readableBytes = attributes.size {
                 while readableBytes > 0 {
                     let consumed = Swift.min(readableBytes, UInt64(UInt32.max))
-                    
+
                     var data = try await self.read(
                         from: numericCast(buffer.writerIndex),
                         length: UInt32(consumed)
                     )
-                    
-                    readableBytes -= UInt64(data.readableBytes)
+
+                    // The server's size is only a hint: stop at EOF, and never trust a reply larger than asked.
+                    guard data.readableBytes > 0 else { break }
+                    readableBytes -= Swift.min(readableBytes, UInt64(data.readableBytes))
                     buffer.writeBuffer(&data)
                 }
             } else {

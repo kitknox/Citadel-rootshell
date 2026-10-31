@@ -193,6 +193,8 @@ public struct SSHAlgorithms: Sendable {
         var publicKeys: [(NIOSSHPublicKeyProtocol.Type, NIOSSHSignatureProtocol.Type)] = [
             (Insecure.RSA.PublicKey.self, Insecure.RSA.Signature.self),
             (Insecure.RSA.PublicKey.self, Insecure.RSA.SHA1Signature.self),
+            // Parse-only: names outside `rsa-sha2-256`/`ssh-rsa` are never advertised.
+            (Insecure.RSA.PublicKey.self, Insecure.RSA.SHA512Signature.self),
             (MLDSA44Ed25519SSH.PublicKey.self, MLDSA44Ed25519SSH.Signature.self),
             (LegacyMLDSA44Ed25519SSH.PublicKey.self, LegacyMLDSA44Ed25519SSH.Signature.self),
             (MLDSA44SSH.PublicKey.self, MLDSA44SSH.Signature.self),

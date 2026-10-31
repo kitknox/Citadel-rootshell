@@ -14,11 +14,13 @@ extension Insecure.RSA {
     private enum VerificationHashAlgorithm {
         case sha1
         case sha256
+        case sha512
 
         var nid: Int32 {
             switch self {
             case .sha1: return NID_sha1
             case .sha256: return NID_sha256
+            case .sha512: return NID_sha512
             }
         }
 
@@ -28,6 +30,8 @@ extension Insecure.RSA {
                 return Array(Insecure.SHA1.hash(data: data))
             case .sha256:
                 return Array(SHA256.hash(data: data))
+            case .sha512:
+                return Array(SHA512.hash(data: data))
             }
         }
     }
@@ -156,6 +160,14 @@ extension Insecure.RSA {
             )
         }
 
+        public func isValidSignature<D: DataProtocol>(_ signature: SHA512Signature, for data: D) -> Bool {
+            isValidSignature(
+                signature.rawRepresentation,
+                for: data,
+                hashAlgorithm: .sha512
+            )
+        }
+
         private func isValidSignature<D: DataProtocol>(
             _ signature: Data,
             for data: D,
@@ -197,6 +209,8 @@ extension Insecure.RSA {
                 return isValidSignature(signature, for: data)
             case let signature as SHA1Signature:
                 return isValidSignature(signature, for: data)
+            case let signature as SHA512Signature:
+                return isValidSignature(signature, for: data)
             default:
                 return false
             }
@@ -237,6 +251,10 @@ extension Insecure.RSA {
             try read(from: &buffer)
         }
         
+        /// OpenSSH's SSH_RSA_MINIMUM_MODULUS_SIZE and SSH_RSA_MAXIMUM_MODULUS_SIZE.
+        public static let minimumModulusBits = 1024
+        public static let maximumModulusBits = 16384
+
         public static func read(from buffer: inout ByteBuffer) throws -> Insecure.RSA.PublicKey {
             guard
                 var publicExponent = buffer.readSSHBuffer(),
@@ -244,13 +262,32 @@ extension Insecure.RSA {
             else {
                 throw RSAError(message: "Invalid signature format")
             }
-            
+
+            // mpint may carry one leading zero byte; check before allocating bignums.
+            guard modulus.readableBytes <= maximumModulusBits / 8 + 1,
+                  publicExponent.readableBytes <= modulus.readableBytes else {
+                throw RSAError(message: "RSA key is too large")
+            }
+
             let publicExponentBytes = publicExponent.readBytes(length: publicExponent.readableBytes)!
             let modulusBytes = modulus.readBytes(length: modulus.readableBytes)!
-            return .init(
+            let key = Insecure.RSA.PublicKey(
                 publicExponent: CCryptoBoringSSL_BN_bin2bn(publicExponentBytes, publicExponentBytes.count, nil),
                 modulus: CCryptoBoringSSL_BN_bin2bn(modulusBytes, modulusBytes.count, nil)
             )
+            try key.checkSize()
+            return key
+        }
+
+        /// Applies to host, CA and user keys alike (cf. OpenSSH RequiredRSASize for CA keys).
+        func checkSize() throws {
+            let modulusBits = Int(CCryptoBoringSSL_BN_num_bits(modulus))
+            guard modulusBits >= Self.minimumModulusBits, modulusBits <= Self.maximumModulusBits else {
+                throw RSAError(message: "RSA modulus of \(modulusBits) bits is outside \(Self.minimumModulusBits)-\(Self.maximumModulusBits)")
+            }
+            guard CCryptoBoringSSL_BN_is_odd(publicExponent) == 1, CCryptoBoringSSL_BN_num_bits(publicExponent) >= 2 else {
+                throw RSAError(message: "Invalid RSA public exponent")
+            }
         }
     }
     
@@ -272,6 +309,12 @@ extension Insecure.RSA {
 
     public enum SHA256SignatureAlgorithm: SignatureAlgorithmIdentifier {
         public static let name = "rsa-sha2-256"
+    }
+
+    /// Verify-only: not advertised for KEX or user auth, but OpenSSH host-key signatures in
+    /// session-bind and `ssh-keygen -s` RSA CA signatures default to it.
+    public enum SHA512SignatureAlgorithm: SignatureAlgorithmIdentifier {
+        public static let name = "rsa-sha2-512"
     }
 
     public enum SHA1SignatureAlgorithm: SignatureAlgorithmIdentifier {
@@ -321,7 +364,10 @@ extension Insecure.RSA {
     /// Legacy RSA/SHA-1 signature used when `ssh-rsa` is negotiated for a host
     /// key or selected by the user-authentication compatibility policy.
     public typealias SHA1Signature = RSASignature<SHA1SignatureAlgorithm>
-    
+
+    /// RSA/SHA-512 signature, verified but never produced.
+    public typealias SHA512Signature = RSASignature<SHA512SignatureAlgorithm>
+
     public final class PrivateKey: NIOSSHPrivateKeyProtocol {
         public static let keyPrefix = "ssh-rsa"
         public static var authAlgorithmName: String { "rsa-sha2-256" }

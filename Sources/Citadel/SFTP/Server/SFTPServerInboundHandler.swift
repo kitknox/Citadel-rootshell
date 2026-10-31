@@ -580,8 +580,8 @@ final class SFTPServerInboundHandler: ChannelInboundHandler {
             readlink(command: command, context: context)
         case .rename(let command):
             rename(command: command, context: context)
-        case .version, .handle, .status, .data, .attributes, .name:
-            // Client cannot send these messages
+        case .version, .handle, .status, .data, .attributes, .name, .lsetstat:
+            // Client cannot send these messages (the parser never yields extended requests)
             context.channel.triggerUserOutboundEvent(ChannelFailureEvent()).whenComplete { _ in
                 context.channel.close(promise: nil)
             }
