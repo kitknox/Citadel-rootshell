@@ -158,65 +158,64 @@ public final class AES128CTR_ETM: NIOSSHTransportProtection {
     internal func _decryptAndVerifyRemainingPacket<H: HashFunction>(_ source: inout ByteBuffer, hash: H.Type, sequenceNumber: UInt32) throws -> ByteBuffer {
         // ETM wire format: [4-byte plaintext length] [ciphertext] [MAC]
         // MAC covers: seq_number || length_bytes || ciphertext
-        guard
-            let lengthBytes = source.readBytes(length: 4)
-        else {
-            throw CitadelError.invalidEncryptedPacketLength
-        }
-
-        let ciphertextLength = source.readableBytes - keySizes.macKeySize
+        let macSize = keySizes.macKeySize
+        let ciphertextLength = source.readableBytes - 4 - macSize
         guard
             ciphertextLength > 0,
-            let ciphertext = source.readBytes(length: ciphertextLength),
-            let macHash = source.readBytes(length: keySizes.macKeySize)
+            let lengthSlice = source.readSlice(length: 4),
+            let ciphertextSlice = source.readSlice(length: ciphertextLength),
+            let macSlice = source.readSlice(length: macSize)
         else {
             throw CitadelError.invalidEncryptedPacketLength
         }
 
-        // Verify MAC FIRST (Encrypt-then-MAC: verify before decryption)
+        // Verify MAC FIRST (Encrypt-then-MAC: verify before decryption) without allocating [UInt8] copies.
         var hmac = Crypto.HMAC<H>(key: keys.inboundMACKey)
         withUnsafeBytes(of: sequenceNumber.bigEndian) { hmac.update(data: $0) }
-        hmac.update(data: lengthBytes)
-        hmac.update(data: ciphertext)
+        lengthSlice.withUnsafeReadableBytes { hmac.update(data: $0) }
+        ciphertextSlice.withUnsafeReadableBytes { hmac.update(data: $0) }
 
-        let isValid = hmac.finalize().withUnsafeBytes { buffer -> Bool in
-            Array(buffer.bindMemory(to: UInt8.self)) == macHash
+        let isValid = hmac.finalize().withUnsafeBytes { expected in
+            macSlice.withUnsafeReadableBytes { received -> Bool in
+                guard expected.count == received.count else { return false }
+                var diff: UInt8 = 0
+                for i in 0..<expected.count {
+                    diff |= expected[i] ^ received[i]
+                }
+                return diff == 0
+            }
         }
 
         guard isValid else {
             throw CitadelError.invalidMac
         }
 
-        // Decrypt ciphertext. AES-CTR is a stream cipher; handles non-block-aligned sizes.
-        let plaintext = try ciphertext.withUnsafeBufferPointer { ciphertextBuf -> [UInt8] in
-            try [UInt8](unsafeUninitializedCapacity: ciphertextBuf.count) { plaintextBuf, count in
+        // Decrypt directly into the returned ByteBuffer (single allocation, zero intermediate [UInt8] copies).
+        var output = ByteBufferAllocator().buffer(capacity: ciphertextLength)
+        try output.writeWithUnsafeMutableBytes(minimumWritableBytes: ciphertextLength) { outPtr in
+            try ciphertextSlice.withUnsafeReadableBytes { inPtr in
                 guard CCryptoBoringSSL_EVP_Cipher(
                     decryptionContext,
-                    plaintextBuf.baseAddress!,
-                    ciphertextBuf.baseAddress!,
-                    ciphertextBuf.count
+                    outPtr.baseAddress!.assumingMemoryBound(to: UInt8.self),
+                    inPtr.baseAddress!.assumingMemoryBound(to: UInt8.self),
+                    ciphertextLength
                 ) == 1 else {
                     throw CitadelError.cryptographicError
                 }
-                count = ciphertextBuf.count
             }
+            return ciphertextLength
         }
 
         // Parse: padding_length(1) || payload || padding
-        guard !plaintext.isEmpty else {
+        guard let paddingLengthByte = output.readInteger(as: UInt8.self) else {
             throw CitadelError.invalidDecryptedPlaintextLength
         }
-
-        let paddingLength = Int(plaintext[0])
-
-        guard paddingLength + 1 <= plaintext.count else {
+        let paddingLength = Int(paddingLengthByte)
+        guard paddingLength <= output.readableBytes else {
             throw CitadelError.invalidDecryptedPlaintextLength
         }
-
-        let payloadEnd = plaintext.count - paddingLength
-        let payload = Array(plaintext[1..<payloadEnd])
-
-        return ByteBuffer(bytes: payload)
+        output.moveWriterIndex(to: output.writerIndex - paddingLength)
+        return output
     }
 
     public func encryptPacket(
@@ -268,33 +267,34 @@ public final class AES128CTR_ETM: NIOSSHTransportProtection {
         outboundBuffer.setInteger(UInt32(packetLength), at: packetLengthIndex)
         outboundBuffer.setInteger(UInt8(paddingLength), at: packetLengthIndex + packetLengthLength)
 
-        // Get content to encrypt: padding_length || payload || padding (NOT the length field)
-        let plaintextContent = outboundBuffer.getBytes(at: packetLengthIndex + packetLengthLength, length: packetLength)!
-
-        // Encrypt with AES-CTR (single call, handles non-block-aligned sizes)
-        let ciphertext = try plaintextContent.withUnsafeBufferPointer { plaintextBuf -> [UInt8] in
-            try [UInt8](unsafeUninitializedCapacity: plaintextBuf.count) { ciphertextBuf, count in
-                guard CCryptoBoringSSL_EVP_Cipher(
-                    encryptionContext,
-                    ciphertextBuf.baseAddress!,
-                    plaintextBuf.baseAddress!,
-                    plaintextBuf.count
-                ) == 1 else {
-                    throw CitadelError.cryptographicError
-                }
-                count = plaintextBuf.count
+        // Encrypt in-place inside outboundBuffer and compute MAC directly over its bytes
+        // without allocating temporary [UInt8] copies.
+        let bodyOffset = packetLengthIndex + packetLengthLength
+        let relBody = bodyOffset - outboundBuffer.readerIndex
+        try outboundBuffer.withUnsafeMutableReadableBytes { rawBuf in
+            let base = rawBuf.baseAddress!.assumingMemoryBound(to: UInt8.self)
+            let bodyPtr = base + relBody
+            guard CCryptoBoringSSL_EVP_Cipher(
+                encryptionContext,
+                bodyPtr,
+                bodyPtr,
+                packetLength
+            ) == 1 else {
+                throw CitadelError.cryptographicError
             }
         }
-
-        // Write ciphertext over the plaintext portion (after the 4-byte length)
-        outboundBuffer.setBytes(ciphertext, at: packetLengthIndex + packetLengthLength)
 
         // Compute MAC over: seq_number || plaintext_length || ciphertext
         var hmac = Crypto.HMAC<H>(key: keys.outboundMACKey)
         withUnsafeBytes(of: sequenceNumber.bigEndian) { hmac.update(data: $0) }
-        let lengthBytes = outboundBuffer.getBytes(at: packetLengthIndex, length: packetLengthLength)!
-        hmac.update(data: lengthBytes)
-        hmac.update(data: ciphertext)
+        outboundBuffer.withUnsafeReadableBytes { rawBuf in
+            let relLen = packetLengthIndex - outboundBuffer.readerIndex
+            let macRegion = UnsafeRawBufferPointer(
+                start: rawBuf.baseAddress!.advanced(by: relLen),
+                count: packetLengthLength + packetLength
+            )
+            hmac.update(data: macRegion)
+        }
         let macHash = hmac.finalize()
 
         outboundBuffer.writeContiguousBytes(macHash)
@@ -460,65 +460,64 @@ public final class AES256CTR_ETM: NIOSSHTransportProtection {
     internal func _decryptAndVerifyRemainingPacket<H: HashFunction>(_ source: inout ByteBuffer, hash: H.Type, sequenceNumber: UInt32) throws -> ByteBuffer {
         // ETM wire format: [4-byte plaintext length] [ciphertext] [MAC]
         // MAC covers: seq_number || length_bytes || ciphertext
-        guard
-            let lengthBytes = source.readBytes(length: 4)
-        else {
-            throw CitadelError.invalidEncryptedPacketLength
-        }
-
-        let ciphertextLength = source.readableBytes - keySizes.macKeySize
+        let macSize = keySizes.macKeySize
+        let ciphertextLength = source.readableBytes - 4 - macSize
         guard
             ciphertextLength > 0,
-            let ciphertext = source.readBytes(length: ciphertextLength),
-            let macHash = source.readBytes(length: keySizes.macKeySize)
+            let lengthSlice = source.readSlice(length: 4),
+            let ciphertextSlice = source.readSlice(length: ciphertextLength),
+            let macSlice = source.readSlice(length: macSize)
         else {
             throw CitadelError.invalidEncryptedPacketLength
         }
 
-        // Verify MAC FIRST (Encrypt-then-MAC: verify before decryption)
+        // Verify MAC FIRST (Encrypt-then-MAC: verify before decryption) without allocating [UInt8] copies.
         var hmac = Crypto.HMAC<H>(key: keys.inboundMACKey)
         withUnsafeBytes(of: sequenceNumber.bigEndian) { hmac.update(data: $0) }
-        hmac.update(data: lengthBytes)
-        hmac.update(data: ciphertext)
+        lengthSlice.withUnsafeReadableBytes { hmac.update(data: $0) }
+        ciphertextSlice.withUnsafeReadableBytes { hmac.update(data: $0) }
 
-        let isValid = hmac.finalize().withUnsafeBytes { buffer -> Bool in
-            Array(buffer.bindMemory(to: UInt8.self)) == macHash
+        let isValid = hmac.finalize().withUnsafeBytes { expected in
+            macSlice.withUnsafeReadableBytes { received -> Bool in
+                guard expected.count == received.count else { return false }
+                var diff: UInt8 = 0
+                for i in 0..<expected.count {
+                    diff |= expected[i] ^ received[i]
+                }
+                return diff == 0
+            }
         }
 
         guard isValid else {
             throw CitadelError.invalidMac
         }
 
-        // Decrypt ciphertext. AES-CTR is a stream cipher; handles non-block-aligned sizes.
-        let plaintext = try ciphertext.withUnsafeBufferPointer { ciphertextBuf -> [UInt8] in
-            try [UInt8](unsafeUninitializedCapacity: ciphertextBuf.count) { plaintextBuf, count in
+        // Decrypt directly into the returned ByteBuffer (single allocation, zero intermediate [UInt8] copies).
+        var output = ByteBufferAllocator().buffer(capacity: ciphertextLength)
+        try output.writeWithUnsafeMutableBytes(minimumWritableBytes: ciphertextLength) { outPtr in
+            try ciphertextSlice.withUnsafeReadableBytes { inPtr in
                 guard CCryptoBoringSSL_EVP_Cipher(
                     decryptionContext,
-                    plaintextBuf.baseAddress!,
-                    ciphertextBuf.baseAddress!,
-                    ciphertextBuf.count
+                    outPtr.baseAddress!.assumingMemoryBound(to: UInt8.self),
+                    inPtr.baseAddress!.assumingMemoryBound(to: UInt8.self),
+                    ciphertextLength
                 ) == 1 else {
                     throw CitadelError.cryptographicError
                 }
-                count = ciphertextBuf.count
             }
+            return ciphertextLength
         }
 
         // Parse: padding_length(1) || payload || padding
-        guard !plaintext.isEmpty else {
+        guard let paddingLengthByte = output.readInteger(as: UInt8.self) else {
             throw CitadelError.invalidDecryptedPlaintextLength
         }
-
-        let paddingLength = Int(plaintext[0])
-
-        guard paddingLength + 1 <= plaintext.count else {
+        let paddingLength = Int(paddingLengthByte)
+        guard paddingLength <= output.readableBytes else {
             throw CitadelError.invalidDecryptedPlaintextLength
         }
-
-        let payloadEnd = plaintext.count - paddingLength
-        let payload = Array(plaintext[1..<payloadEnd])
-
-        return ByteBuffer(bytes: payload)
+        output.moveWriterIndex(to: output.writerIndex - paddingLength)
+        return output
     }
 
     public func encryptPacket(
@@ -570,33 +569,34 @@ public final class AES256CTR_ETM: NIOSSHTransportProtection {
         outboundBuffer.setInteger(UInt32(packetLength), at: packetLengthIndex)
         outboundBuffer.setInteger(UInt8(paddingLength), at: packetLengthIndex + packetLengthLength)
 
-        // Get content to encrypt: padding_length || payload || padding (NOT the length field)
-        let plaintextContent = outboundBuffer.getBytes(at: packetLengthIndex + packetLengthLength, length: packetLength)!
-
-        // Encrypt with AES-CTR (single call, handles non-block-aligned sizes)
-        let ciphertext = try plaintextContent.withUnsafeBufferPointer { plaintextBuf -> [UInt8] in
-            try [UInt8](unsafeUninitializedCapacity: plaintextBuf.count) { ciphertextBuf, count in
-                guard CCryptoBoringSSL_EVP_Cipher(
-                    encryptionContext,
-                    ciphertextBuf.baseAddress!,
-                    plaintextBuf.baseAddress!,
-                    plaintextBuf.count
-                ) == 1 else {
-                    throw CitadelError.cryptographicError
-                }
-                count = plaintextBuf.count
+        // Encrypt in-place inside outboundBuffer and compute MAC directly over its bytes
+        // without allocating temporary [UInt8] copies.
+        let bodyOffset = packetLengthIndex + packetLengthLength
+        let relBody = bodyOffset - outboundBuffer.readerIndex
+        try outboundBuffer.withUnsafeMutableReadableBytes { rawBuf in
+            let base = rawBuf.baseAddress!.assumingMemoryBound(to: UInt8.self)
+            let bodyPtr = base + relBody
+            guard CCryptoBoringSSL_EVP_Cipher(
+                encryptionContext,
+                bodyPtr,
+                bodyPtr,
+                packetLength
+            ) == 1 else {
+                throw CitadelError.cryptographicError
             }
         }
-
-        // Write ciphertext over the plaintext portion (after the 4-byte length)
-        outboundBuffer.setBytes(ciphertext, at: packetLengthIndex + packetLengthLength)
 
         // Compute MAC over: seq_number || plaintext_length || ciphertext
         var hmac = Crypto.HMAC<H>(key: keys.outboundMACKey)
         withUnsafeBytes(of: sequenceNumber.bigEndian) { hmac.update(data: $0) }
-        let lengthBytes = outboundBuffer.getBytes(at: packetLengthIndex, length: packetLengthLength)!
-        hmac.update(data: lengthBytes)
-        hmac.update(data: ciphertext)
+        outboundBuffer.withUnsafeReadableBytes { rawBuf in
+            let relLen = packetLengthIndex - outboundBuffer.readerIndex
+            let macRegion = UnsafeRawBufferPointer(
+                start: rawBuf.baseAddress!.advanced(by: relLen),
+                count: packetLengthLength + packetLength
+            )
+            hmac.update(data: macRegion)
+        }
         let macHash = hmac.finalize()
 
         outboundBuffer.writeContiguousBytes(macHash)

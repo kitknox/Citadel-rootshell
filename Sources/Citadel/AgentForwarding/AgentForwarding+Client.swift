@@ -28,8 +28,15 @@ extension SSHClient {
         delegate: SSHAgentDelegate,
         on channel: Channel
     ) async throws {
-        // Register the agent channel handler
-        session.inboundChannelHandler.registerAgentHandler { [allocator = channel.allocator] agentChannel in
+        // Capture the session's inbound handler up front so an automatic
+        // reconnect replacing `self.session` during the await below cannot
+        // cause cleanup/pruning to touch the new session's token namespace.
+        let inboundHandler = session.inboundChannelHandler
+        let ownerID = ObjectIdentifier(channel)
+        // Register the agent channel handler with a token so failure or channel
+        // close cleans up only this registration, and repeated calls on the same
+        // channel prune older superseded delegates once the new request succeeds.
+        let token = inboundHandler.registerAgentHandler(ownerID: ownerID) { [allocator = channel.allocator] agentChannel in
             let handler = AgentChannelHandler(delegate: delegate, allocator: allocator)
             return agentChannel.pipeline.addHandler(handler)
         }
@@ -38,7 +45,17 @@ extension SSHClient {
         // Use wantReply: false because a failure response would terminate the PTY session
         // The server will simply not open agent channels if it doesn't support forwarding
         let request = SSHChannelRequestEvent.AuthAgentRequest(wantReply: false)
-        try await channel.triggerUserOutboundEvent(request).get()
+        do {
+            try await channel.triggerUserOutboundEvent(request).get()
+        } catch {
+            inboundHandler.rollbackAgentHandler(token: token)
+            throw error
+        }
+
+        inboundHandler.pruneAgentHandlers(forOwner: ownerID, keeping: token)
+        channel.closeFuture.whenComplete { _ in
+            inboundHandler.rollbackAgentHandler(token: token)
+        }
     }
 
     /// Disables SSH agent forwarding for this connection.

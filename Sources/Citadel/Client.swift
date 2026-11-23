@@ -287,22 +287,31 @@ public final class SSHClient {
         settings: SSHClientSettings
     ) async throws -> SSHClient {
         let inboundChannelHandler = SSHClientInboundChannelHandler()
-        // Dispatch to the channel's event loop — addHandlers uses
-        // syncOperations which requires the caller to be on the event loop.
-        try await channel.eventLoop.flatSubmit {
+        // Dispatch to the channel's event loop once: install handlers, enable reads,
+        // and await authentication before hopping back to Swift Concurrency.
+        let session = try await channel.eventLoop.flatSubmit {
             SSHClientSession.addHandlers(
                 on: channel,
                 inboundChannelHandler: inboundChannelHandler,
                 settings: settings
             ).flatMap {
                 channel.setOption(ChannelOptions.autoRead, value: true)
+            }.flatMap { () -> EventLoopFuture<SSHClientSession> in
+                do {
+                    let sshHandler = try channel.pipeline.syncOperations.handler(type: NIOSSHHandler.self)
+                    let handshakeHandler = try channel.pipeline.syncOperations.handler(type: ClientHandshakeHandler.self)
+                    return handshakeHandler.authenticated.map {
+                        SSHClientSession(
+                            channel: channel,
+                            inboundChannelHandler: inboundChannelHandler,
+                            sshHandler: sshHandler,
+                            negotiatedAlgorithms: sshHandler.negotiatedAlgorithms
+                        )
+                    }
+                } catch {
+                    return channel.eventLoop.makeFailedFuture(error)
+                }
             }
-        }.get()
-        
-        let sshHandler = try await channel.pipeline.handler(type: NIOSSHHandler.self).get()
-        let handshakeHandler = try await channel.pipeline.handler(type: ClientHandshakeHandler.self).get()
-        let session = try await handshakeHandler.authenticated.map {
-            SSHClientSession(channel: channel, inboundChannelHandler: inboundChannelHandler, sshHandler: sshHandler)
         }.get()
 
         return SSHClient(
@@ -331,10 +340,21 @@ public final class SSHClient {
             )
         }
         
-        let sshHandler = try await channel.pipeline.handler(type: NIOSSHHandler.self).get()
-        let handshakeHandler = try await channel.pipeline.handler(type: ClientHandshakeHandler.self).get()
-        let session = try await handshakeHandler.authenticated.map {
-            SSHClientSession(channel: channel, inboundChannelHandler: inboundChannelHandler, sshHandler: sshHandler)
+        let session = try await channel.eventLoop.flatSubmit { () -> EventLoopFuture<SSHClientSession> in
+            do {
+                let sshHandler = try channel.pipeline.syncOperations.handler(type: NIOSSHHandler.self)
+                let handshakeHandler = try channel.pipeline.syncOperations.handler(type: ClientHandshakeHandler.self)
+                return handshakeHandler.authenticated.map {
+                    SSHClientSession(
+                        channel: channel,
+                        inboundChannelHandler: inboundChannelHandler,
+                        sshHandler: sshHandler,
+                        negotiatedAlgorithms: sshHandler.negotiatedAlgorithms
+                    )
+                }
+            } catch {
+                return channel.eventLoop.makeFailedFuture(error)
+            }
         }.get()
 
         return SSHClient(
@@ -505,17 +525,23 @@ public final class SSHClient {
         try await self.session.channel.close()
     }
 
-    /// Retrieves the negotiated SSH algorithms for this connection.
+    /// The negotiated SSH algorithms captured when authentication completed, if available.
+    /// Readable synchronously without an event-loop hop (reflects initial handshake; use
+    /// `getNegotiatedAlgorithms()` for a live lookup after rekeying).
+    public var negotiatedAlgorithms: (keyExchange: String, hostKey: String, cipher: String, mac: String?)? {
+        session.negotiatedAlgorithms
+    }
+
+    /// Retrieves the live negotiated SSH algorithms for this connection.
     ///
-    /// This queries the underlying NIOSSHHandler on the event loop to get the
-    /// key exchange, host key, cipher, and MAC algorithms that were negotiated
-    /// during the SSH handshake.
+    /// Queries the underlying NIOSSHHandler on the event loop so updates from
+    /// subsequent key re-exchanges are reflected accurately.
     ///
     /// - Returns: A tuple of negotiated algorithm names, or nil if key exchange hasn't completed.
     public func getNegotiatedAlgorithms() async throws -> (keyExchange: String, hostKey: String, cipher: String, mac: String?)? {
-        try await eventLoop.flatSubmit { [sshHandler = self.session.sshHandler] in
+        return try await eventLoop.flatSubmit { [eventLoop, sshHandler = self.session.sshHandler] in
             let result = sshHandler.value.negotiatedAlgorithms
-            return self.eventLoop.makeSucceededFuture(result)
+            return eventLoop.makeSucceededFuture(result)
         }.get()
     }
 

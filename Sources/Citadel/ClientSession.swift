@@ -12,7 +12,21 @@ final class SSHClientInboundChannelHandler: Sendable {
     let forwardedTCPIPHosts = NIOLockedValueBox(
         [SSHRemotePortForward: TCPIPForwardHandler]()
     )
-    let agentHandler = NIOLockedValueBox<AgentChannelHandler?>(nil)
+    struct AgentHandlerRegistration: Sendable {
+        let token: UInt64
+        let ownerID: ObjectIdentifier?
+        let handler: AgentChannelHandler
+    }
+
+    private struct AgentHandlerState {
+        var nextToken: UInt64 = 0
+        /// Ordered stack of active registrations; the most recently registered
+        /// surviving handler is at the end. Removing any failed registration by
+        /// token preserves all surviving handlers even across overlapping opens.
+        var registrations: [AgentHandlerRegistration] = []
+    }
+
+    private let agentHandlerState = NIOLockedValueBox(AgentHandlerState())
 
     typealias StreamLocalForwardHandler = @Sendable (Channel) -> EventLoopFuture<Void>
 
@@ -56,16 +70,43 @@ final class SSHClientInboundChannelHandler: Sendable {
         }
     }
 
-    /// Registers a handler for SSH agent forwarding channels.
-    ///
-    /// - Parameter handler: The handler to call when an agent channel is opened.
-    nonisolated func registerAgentHandler(_ handler: @escaping AgentChannelHandler) {
-        agentHandler.withLockedValue { $0 = handler }
+    /// Registers a handler for SSH agent forwarding channels, returning a unique
+    /// registration token so a failed or closed channel can remove only its own
+    /// registration without disturbing surviving shells or overlapping opens.
+    @discardableResult
+    nonisolated func registerAgentHandler(
+        ownerID: ObjectIdentifier? = nil,
+        _ handler: @escaping AgentChannelHandler
+    ) -> UInt64 {
+        agentHandlerState.withLockedValue { state in
+            state.nextToken &+= 1
+            let token = state.nextToken
+            state.registrations.append(AgentHandlerRegistration(token: token, ownerID: ownerID, handler: handler))
+            return token
+        }
     }
 
-    /// Unregisters the SSH agent forwarding handler.
+    /// Removes older registrations (`token < keeping`) for the same channel
+    /// `ownerID`, so repeated `enableAgentForwarding(delegate:on:)` calls on a
+    /// long-lived channel do not accumulate superseded delegates while two
+    /// concurrent requests on the same channel can never prune each other out.
+    nonisolated func pruneAgentHandlers(forOwner ownerID: ObjectIdentifier, keeping token: UInt64) {
+        agentHandlerState.withLockedValue { state in
+            state.registrations.removeAll { $0.ownerID == ownerID && $0.token < token }
+        }
+    }
+
+    /// Removes the specific agent handler registration identified by `token`,
+    /// leaving all other surviving registrations intact in order.
+    nonisolated func rollbackAgentHandler(token: UInt64) {
+        agentHandlerState.withLockedValue { state in
+            state.registrations.removeAll { $0.token == token }
+        }
+    }
+
+    /// Unregisters all SSH agent forwarding handlers.
     nonisolated func unregisterAgentHandler() {
-        agentHandler.withLockedValue { $0 = nil }
+        agentHandlerState.withLockedValue { $0.registrations.removeAll() }
     }
 
     /// Registers a per-path handler for incoming streamlocal-forward
@@ -108,8 +149,8 @@ final class SSHClientInboundChannelHandler: Sendable {
                 return host(channel, forwardedTCPIP)
             }
         case .authAgent:
-            return agentHandler.withLockedValue { handler in
-                guard let handler = handler else {
+            return agentHandlerState.withLockedValue { state in
+                guard let handler = state.registrations.last?.handler else {
                     return channel.eventLoop.makeFailedFuture(CitadelError.unsupported)
                 }
                 return handler(channel)
@@ -225,11 +266,18 @@ final class SSHClientSession: Sendable {
     let channel: Channel
     let sshHandler: NIOLoopBoundBox<NIOSSHHandler>
     let inboundChannelHandler: SSHClientInboundChannelHandler
+    let negotiatedAlgorithms: (keyExchange: String, hostKey: String, cipher: String, mac: String?)?
     
-    init(channel: Channel, inboundChannelHandler: SSHClientInboundChannelHandler, sshHandler: NIOSSHHandler) {
+    init(
+        channel: Channel,
+        inboundChannelHandler: SSHClientInboundChannelHandler,
+        sshHandler: NIOSSHHandler,
+        negotiatedAlgorithms: (keyExchange: String, hostKey: String, cipher: String, mac: String?)? = nil
+    ) {
         self.channel = channel
         self.inboundChannelHandler = inboundChannelHandler
         self.sshHandler = NIOLoopBoundBox(sshHandler, eventLoop: channel.eventLoop)
+        self.negotiatedAlgorithms = negotiatedAlgorithms
     }
     
     /// Creates a new SSH session on the given channel. This allows you to use an existing channel for the SSH session.
@@ -333,7 +381,12 @@ final class SSHClientSession: Sendable {
             }.flatMap {
                 channel.pipeline.handler(type: NIOSSHHandler.self)
             }.map { sshHandler in
-                SSHClientSession(channel: channel, inboundChannelHandler: inboundChannelHandler, sshHandler: sshHandler)
+                SSHClientSession(
+                    channel: channel,
+                    inboundChannelHandler: inboundChannelHandler,
+                    sshHandler: sshHandler,
+                    negotiatedAlgorithms: sshHandler.negotiatedAlgorithms
+                )
             }
         }.get()
     }

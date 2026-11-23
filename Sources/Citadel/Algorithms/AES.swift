@@ -200,28 +200,22 @@ public final class AES128CTR: NIOSSHTransportProtection {
         }
 
         if !ciphertext.isEmpty {
-            // Ok, let's try to decrypt this data.
+            // AES-CTR is a stream cipher: decrypt the entire ciphertext in a single BoringSSL call
+            // rather than looping one 16-byte block at a time.
             plaintext += try ciphertext.withUnsafeBufferPointer { ciphertext -> [UInt8] in
-                let ciphertextPointer = ciphertext.baseAddress!
-                
-                return try [UInt8](
+                try [UInt8](
                     unsafeUninitializedCapacity: ciphertext.count,
                     initializingWith: { plaintext, count in
-                    let plaintextPointer = plaintext.baseAddress!
-                    
-                    while count < ciphertext.count {
                         guard CCryptoBoringSSL_EVP_Cipher(
                             decryptionContext,
-                            plaintextPointer + count,
-                            ciphertextPointer + count,
-                            Self.cipherBlockSize
+                            plaintext.baseAddress!,
+                            ciphertext.baseAddress!,
+                            ciphertext.count
                         ) == 1 else {
                             throw CitadelError.cryptographicError
                         }
-                        
-                        count += Self.cipherBlockSize
-                    }
-                })
+                        count = ciphertext.count
+                    })
             }
             
             // All good! A quick soundness check to verify that the length of the plaintext is ok.
@@ -238,8 +232,12 @@ public final class AES128CTR: NIOSSHTransportProtection {
             hmac.update(data: plaintext)
             
             return hmac.finalize().withUnsafeBytes { buffer -> Bool in
-                let buffer = Array(buffer.bindMemory(to: UInt8.self))
-                return buffer == macHash
+                guard buffer.count == macHash.count else { return false }
+                var diff: UInt8 = 0
+                for i in 0..<buffer.count {
+                    diff |= buffer[i] ^ macHash[i]
+                }
+                return diff == 0
             }
         }
         
@@ -343,23 +341,16 @@ public final class AES128CTR: NIOSSHTransportProtection {
         let macHash = hmac.finalize()
         
         let ciphertext = try plaintext.withUnsafeBufferPointer { plaintext -> [UInt8] in
-            let plaintextPointer = plaintext.baseAddress!
-            
-            return try [UInt8](unsafeUninitializedCapacity: plaintext.count) { ciphertext, count in
-                let ciphertextPointer = ciphertext.baseAddress!
-                
-                while count < encryptedBufferSize {
-                    guard CCryptoBoringSSL_EVP_Cipher(
-                        encryptionContext,
-                        ciphertextPointer + count,
-                        plaintextPointer + count,
-                        Self.cipherBlockSize
-                    ) == 1 else {
-                        throw CitadelError.cryptographicError
-                    }
-                    
-                    count += Self.cipherBlockSize
+            try [UInt8](unsafeUninitializedCapacity: plaintext.count) { ciphertext, count in
+                guard CCryptoBoringSSL_EVP_Cipher(
+                    encryptionContext,
+                    ciphertext.baseAddress!,
+                    plaintext.baseAddress!,
+                    encryptedBufferSize
+                ) == 1 else {
+                    throw CitadelError.cryptographicError
                 }
+                count = encryptedBufferSize
             }
         }
 
@@ -568,26 +559,19 @@ public final class AES256CTR: NIOSSHTransportProtection {
 
         if !ciphertext.isEmpty {
             plaintext += try ciphertext.withUnsafeBufferPointer { ciphertext -> [UInt8] in
-                let ciphertextPointer = ciphertext.baseAddress!
-
-                return try [UInt8](
+                try [UInt8](
                     unsafeUninitializedCapacity: ciphertext.count,
                     initializingWith: { plaintext, count in
-                    let plaintextPointer = plaintext.baseAddress!
-
-                    while count < ciphertext.count {
                         guard CCryptoBoringSSL_EVP_Cipher(
                             decryptionContext,
-                            plaintextPointer + count,
-                            ciphertextPointer + count,
-                            Self.cipherBlockSize
+                            plaintext.baseAddress!,
+                            ciphertext.baseAddress!,
+                            ciphertext.count
                         ) == 1 else {
                             throw CitadelError.cryptographicError
                         }
-
-                        count += Self.cipherBlockSize
-                    }
-                })
+                        count = ciphertext.count
+                    })
             }
 
             guard plaintext.count % Self.cipherBlockSize == 0 else {
@@ -603,8 +587,12 @@ public final class AES256CTR: NIOSSHTransportProtection {
             hmac.update(data: plaintext)
 
             return hmac.finalize().withUnsafeBytes { buffer -> Bool in
-                let buffer = Array(buffer.bindMemory(to: UInt8.self))
-                return buffer == macHash
+                guard buffer.count == macHash.count else { return false }
+                var diff: UInt8 = 0
+                for i in 0..<buffer.count {
+                    diff |= buffer[i] ^ macHash[i]
+                }
+                return diff == 0
             }
         }
 
@@ -686,23 +674,16 @@ public final class AES256CTR: NIOSSHTransportProtection {
         let macHash = hmac.finalize()
 
         let ciphertext = try plaintext.withUnsafeBufferPointer { plaintext -> [UInt8] in
-            let plaintextPointer = plaintext.baseAddress!
-
-            return try [UInt8](unsafeUninitializedCapacity: plaintext.count) { ciphertext, count in
-                let ciphertextPointer = ciphertext.baseAddress!
-
-                while count < encryptedBufferSize {
-                    guard CCryptoBoringSSL_EVP_Cipher(
-                        encryptionContext,
-                        ciphertextPointer + count,
-                        plaintextPointer + count,
-                        Self.cipherBlockSize
-                    ) == 1 else {
-                        throw CitadelError.cryptographicError
-                    }
-
-                    count += Self.cipherBlockSize
+            try [UInt8](unsafeUninitializedCapacity: plaintext.count) { ciphertext, count in
+                guard CCryptoBoringSSL_EVP_Cipher(
+                    encryptionContext,
+                    ciphertext.baseAddress!,
+                    plaintext.baseAddress!,
+                    encryptedBufferSize
+                ) == 1 else {
+                    throw CitadelError.cryptographicError
                 }
+                count = encryptedBufferSize
             }
         }
 
