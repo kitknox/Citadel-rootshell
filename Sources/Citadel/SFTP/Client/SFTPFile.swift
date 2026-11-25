@@ -76,6 +76,23 @@ public final class SFTPFile {
         return attributes.attributes
     }
 
+    /// Reads the attributes of the open handle (FSTAT).
+    ///
+    /// Unlike `readAttributes()`, which stats the path, this describes the file the handle reads
+    /// and writes even if a rename or symlink replaced the path after the file was opened.
+    public func readHandleAttributes() async throws -> SFTPFileAttributes {
+        guard self.isActive else { throw SFTPError.fileHandleInvalid }
+
+        guard case .attributes(let attributes) = try await self.client.sendRequest(.fstat(.init(
+            requestId: self.client.allocateRequestId(),
+            handle: self.handle
+        ))) else {
+            throw SFTPError.invalidResponse
+        }
+
+        return attributes.attributes
+    }
+
     /// Sets attributes on the open handle (FSETSTAT); only the fields present in `attributes` change.
     ///
     /// Unlike a path SETSTAT, this can't be redirected by a symlink swapped in after the file was

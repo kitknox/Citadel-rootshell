@@ -75,6 +75,20 @@ final class SFTPSetAttributesTests: XCTestCase {
         XCTAssertEqual(try mode(of: target), 0o600)
     }
 
+    func testHandleAttributesDescribeOpenedFileAfterPathSwap() async throws {
+        let path = "\(root!)/opened"
+        FileManager.default.createFile(atPath: path, contents: Data("12345".utf8))
+        let file = try await sftp.openFile(filePath: path, flags: .read)
+        try FileManager.default.moveItem(atPath: path, toPath: "\(root!)/moved")
+        FileManager.default.createFile(atPath: path, contents: Data("1234567890".utf8))
+
+        let handleAttributes = try await file.readHandleAttributes()
+        let pathAttributes = try await file.readAttributes()
+        try await file.close()
+        XCTAssertEqual(handleAttributes.size, 5)
+        XCTAssertEqual(pathAttributes.size, 10)
+    }
+
     func testReadAllReturnsWholeFile() async throws {
         let contents = String(repeating: "abcdef", count: 50_000)
         FileManager.default.createFile(atPath: "\(root!)/big", contents: Data(contents.utf8))
